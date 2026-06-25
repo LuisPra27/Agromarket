@@ -37,14 +37,21 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 ### Fase 2. Configuración básica ✅ COMPLETA
 - [x] Configurar `FILESYSTEM_DISK=public` para fotos de productos y comprobantes
 - [x] Configurar storage symlink (`php artisan storage:link`)
-- [x] Ajustar límites de subida de archivos en PHP (`upload_max_filesize=20M`, `post_max_size=20M`, `memory_limit=256M` `max_execution_time=120`)
+- [x] Ajustar límites de subida de archivos en PHP (`upload_max_filesize=20M`, `post_max_size=20M`, `memory_limit=256M`, `max_execution_time=120`)
 - [x] Excluir `public/storage` del contexto de build en `.dockerignore` (el symlink no se puede copiar al construir la imagen en Windows)
 - [x] Acordar convención de carpetas en `storage/app/public/`: `productos/` (Fase 4) y `comprobantes/` (Fase 5)
 
-### Fase 3. Modelado de base de datos
-- [ ] Migraciones: `categorias`, `productos`, `usuarios` (con `rol`, `es_repartidor`, `balance`), `pedidos`, `detalle_pedido`
-- [ ] Seeders de prueba (categorías y productos demo)
-- [ ] Verificar relaciones (FK) en PostgreSQL
+### Fase 3. Modelado de base de datos ✅ COMPLETA
+- [x] Migración `categorias` (id, nombre, descripcion)
+- [x] Migración `productos` (FK a categorias, ON DELETE RESTRICT; nombre, precio, stock, imagen_url)
+- [x] Migración `usuarios` (cedula, nombre_completo, correo, clave, rol enum [administrador, cliente], es_repartidor, balance)
+- [x] Migración `pedidos` (FK cliente_id y repartidor_id a usuarios; total, metodo_entrega enum [retiro, delivery], estado enum [pendiente_validacion, rechazado, preparando, listo_para_delivery, en_camino, entregado], comprobante_pago_url, codigo_qr_hash único, punto_encuentro + pin_x + pin_y para ubicación tipo "pin sobre mapa del campus")
+- [x] Migración `detalle_pedido` (FK a pedidos ON DELETE CASCADE, FK a productos ON DELETE RESTRICT; cantidad, precio_unitario histórico, subtotal)
+- [x] Verificadas las 5 tablas y sus constraints (FK, CHECK, UNIQUE) directamente en PostgreSQL
+
+> **Decisión de diseño — ubicación de entrega:** se descartó un catálogo `ubicaciones` (tabla aparte) y coordenadas GPS reales. En su lugar, `pedidos` guarda un campo de texto libre (`punto_encuentro`) más dos coordenadas porcentuales (`pin_x`, `pin_y`) que ubican un pin sobre una imagen estática del mapa del campus ULEAM. Esto resuelve que estudiantes no familiarizados con los nombres de las facultades puedan señalar visualmente dónde están, sin la complejidad de GPS en tiempo real ni un catálogo de puntos fijos.
+
+> **Pendiente para fase de Auth (Fase 8):** el modelo de autenticación usa la tabla `usuarios` (no la `users` default de Laravel). Habrá que apuntar el modelo `User`/guard de Sanctum a `usuarios` y revisar el campo `clave` vs `password`.
 
 ### Fase 4. Panel Admin — Módulo Inventario
 - [ ] Filament Resource para `Producto` (nombre, precio, categoría, stock, foto)
@@ -101,6 +108,8 @@ Este proyecto usa Docker **solo para PostgreSQL**; Laravel se ejecuta a través 
 ```powershell
 ./scripts/backend.ps1 install
 ```
+
+> ⚠️ **Esto NO se corre a diario.** Solo es necesario la primera vez, o cuando se modifique el `Dockerfile` (ej. nueva extensión PHP) o se instale una dependencia nueva vía Composer (ej. un paquete nuevo). Para el día a día, ver la sección "Rutina diaria" más abajo — ahí solo se usa `docker.ps1 up` y `backend.ps1 start`.
 
 > El `Dockerfile` incluye: PHP 8.4-cli-alpine, extensiones `pdo`, `pdo_pgsql`, `pgsql`, `zip`, `bcmath`, `intl` (requerida por Filament), y límites de subida de archivos ajustados (`upload_max_filesize=20M`, `post_max_size=20M`, `memory_limit=256M`). El `.dockerignore` excluye `public/storage` (symlink que no se puede copiar en builds de Windows).
 
