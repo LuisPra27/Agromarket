@@ -4,7 +4,7 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 
 ## Stack Tecnológico
 
-- **Backend & API:** Laravel (PHP 8.4) + Laravel Sanctum (Auth) + PostgreSQL
+- **Backend & API:** Laravel 13 (PHP 8.4) + Laravel Sanctum (Auth) + PostgreSQL
 - **Panel Administrativo:** Laravel Filament
 - **Frontend Móvil:** React Native + TypeScript
 - **Tiempo Real:** Laravel Reverb / Pusher (WebSockets)
@@ -20,17 +20,17 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 
 ## Roadmap del Proyecto
 
-### Fase 1. Instalación de Laravel y entorno ✅
-- [ ] Crear estructura de carpetas (`backend/`, `scripts/`)
-- [ ] Configurar `docker-compose.yml` con PostgreSQL (`agromarket_db`, puerto host `5433`, volumen `agromarket_postgres_data`)
-- [ ] Crear `backend/Dockerfile` (PHP 8.4-cli-alpine + extensiones: `pdo_pgsql`, `gd`, `zip`, `bcmath`, `intl`, `opcache`)
-- [ ] Construir imagen `agromarket-backend`
-- [ ] Instalar Laravel dentro de `backend/` vía contenedor
-- [ ] Configurar `.env` (`DB_CONNECTION=pgsql`, `DB_HOST=host.docker.internal`, `DB_PORT=5433`)
-- [ ] Verificar conexión a PostgreSQL y correr migraciones base
-- [ ] Instalar Laravel Sanctum
+### Fase 1. Instalación de Laravel y entorno ✅ COMPLETA
+- [x] Crear estructura de carpetas (`backend/`, `scripts/`)
+- [x] Configurar `docker-compose.yml` con PostgreSQL (`agromarket_db`, puerto host `5433`, volumen `agromarket_postgres_data`)
+- [x] Crear `backend/Dockerfile` (PHP 8.4-cli-alpine + extensiones: `pdo`, `pdo_pgsql`, `pgsql`, `zip`, `bcmath`)
+- [x] Construir imagen `agromarket-backend`
+- [x] Instalar Laravel 13 dentro de `backend/` vía Composer local
+- [x] Configurar `.env` (`DB_CONNECTION=pgsql`, `DB_HOST=host.docker.internal`, `DB_PORT=5433`)
+- [x] Verificar conexión a PostgreSQL y correr migraciones base
+- [x] Crear scripts `docker.ps1` / `backend.ps1` (PowerShell) para no repetir comandos `docker run` largos
+- [ ] Instalar Laravel Sanctum *(en progreso)*
 - [ ] Instalar Laravel Filament
-- [ ] Crear scripts `docker.sh` / `backend.sh` (o `.ps1` para Windows) para no repetir comandos `docker run` largos
 
 ### Fase 2. Configuración básica
 - [ ] Configurar `FILESYSTEM_DISK` para fotos de productos y comprobantes
@@ -83,45 +83,73 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 
 ## Entorno de Desarrollo (Docker)
 
-Este proyecto usa Docker **solo para PostgreSQL**; Laravel se ejecuta a través de una imagen propia (`agromarket-backend`) vía `docker run`, sin `docker-compose up` para el backend. El entorno está completamente aislado del proyecto Observatorio ULEAM (red, volúmenes y nombres de contenedor propios).
+Este proyecto usa Docker **solo para PostgreSQL**; Laravel se ejecuta a través de una imagen propia (`agromarket-backend`) vía `docker run`, sin `docker-compose up` para el backend. El entorno está completamente aislado del proyecto Observatorio ULEAM (red, volúmenes, puertos y nombres de contenedor propios).
 
 ### Levantar PostgreSQL
 
 ```powershell
-docker-compose up -d
-docker-compose ps
+./scripts/docker.ps1 up
+./scripts/docker.ps1 status
 ```
 
 ### Construir la imagen de Laravel
 
 ```powershell
-docker build -t agromarket-backend -f backend/Dockerfile backend
+./scripts/backend.ps1 install
 ```
 
 ### Ejecutar comandos artisan
 
+Usar siempre el script `backend.ps1`, que ya incluye las variables de entorno y el volumen montado para reflejar cambios de código en tiempo real:
+
 ```powershell
-docker run --rm -v "${PWD}/backend:/app" --add-host=host.docker.internal:host-gateway agromarket-backend php artisan <comando>
+./scripts/backend.ps1 migrate
+./scripts/backend.ps1 seed
+./scripts/backend.ps1 tinker
+./scripts/backend.ps1 routes
+```
+
+Comando equivalente manual (referencia, normalmente no se usa directo):
+
+```powershell
+docker run --rm `
+  --add-host=host.docker.internal:host-gateway `
+  --env-file backend/.env `
+  -e DB_HOST=host.docker.internal `
+  -v "${PWD}/backend:/var/www/html" `
+  --entrypoint php `
+  agromarket-backend artisan <comando>
+```
+
+### Levantar el backend (servidor de desarrollo)
+
+```powershell
+./scripts/backend.ps1 start   # http://127.0.0.1:8000
+./scripts/backend.ps1 logs
+./scripts/backend.ps1 stop
 ```
 
 ### Variables de entorno clave (`backend/.env`)
 
 ```env
+APP_NAME=Agromarket
+APP_URL=http://localhost:8000
+
 DB_CONNECTION=pgsql
 DB_HOST=host.docker.internal
 DB_PORT=5433
 DB_DATABASE=agromarket_fcvt
 DB_USERNAME=postgres
-DB_PASSWORD=postgres123
+DB_PASSWORD=<tu password definido en docker-compose.yml>
 ```
 
-> ⚠️ **Nota importante sobre el puerto:** `DB_PORT` debe ser `5433` (el puerto publicado en el host según `docker-compose.yml`), no `5432`. Usar `5432` puede conectar accidentalmente a otro PostgreSQL corriendo localmente en el host (por ejemplo, una instancia nativa de Windows o de otro proyecto), causando el error `FATAL: no existe la base de datos` aunque la base sí exista dentro del contenedor correcto.
+> ⚠️ **Nota sobre el puerto:** `DB_PORT` debe ser `5433`, que es el puerto que el contenedor `agromarket_db` publica en el host (mapeo `5433:5432` en `docker-compose.yml`). Internamente, Postgres siempre escucha en el puerto estándar `5432` dentro del contenedor; `5433` es solo la puerta de entrada desde Windows, elegida para no chocar con el puerto `5432` por defecto que usa el proyecto Observatorio ULEAM si ambos están corriendo a la vez.
 
 ## Estructura del Proyecto
 
 ```
 agromarket-fcvt/
-├── backend/        # Laravel + Filament (API + Panel Admin)
-├── scripts/        # Scripts de automatización Docker
+├── backend/        # Laravel 13 + Filament (API + Panel Admin)
+├── scripts/        # Scripts de automatización (docker.ps1, backend.ps1)
 └── docker-compose.yml
 ```
