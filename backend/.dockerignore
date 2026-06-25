@@ -2,6 +2,7 @@ vendor
 node_modules
 .env
 .git
+public/storage
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*

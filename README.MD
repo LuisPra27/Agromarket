@@ -29,13 +29,17 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 - [x] Configurar `.env` (`DB_CONNECTION=pgsql`, `DB_HOST=host.docker.internal`, `DB_PORT=5433`)
 - [x] Verificar conexión a PostgreSQL y correr migraciones base
 - [x] Crear scripts `docker.ps1` / `backend.ps1` (PowerShell) para no repetir comandos `docker run` largos
-- [ ] Instalar Laravel Sanctum *(en progreso)*
-- [ ] Instalar Laravel Filament
+- [x] Instalar Laravel Sanctum (`HasApiTokens` agregado al modelo `User`)
+- [x] Instalar Laravel Filament v3.3.54 y generar panel admin (`/admin`)
+- [x] Crear primer usuario administrador (`php artisan make:filament-user`)
+- [x] Agregar extensión PHP `intl` al Dockerfile (requerida por Filament)
 
-### Fase 2. Configuración básica
-- [ ] Configurar `FILESYSTEM_DISK` para fotos de productos y comprobantes
-- [ ] Crear usuario admin para Filament (`php artisan make:filament-user`)
-- [ ] Configurar storage symlink (`php artisan storage:link`)
+### Fase 2. Configuración básica ✅ COMPLETA
+- [x] Configurar `FILESYSTEM_DISK=public` para fotos de productos y comprobantes
+- [x] Configurar storage symlink (`php artisan storage:link`)
+- [x] Ajustar límites de subida de archivos en PHP (`upload_max_filesize=20M`, `post_max_size=20M`, `memory_limit=256M` `max_execution_time=120`)
+- [x] Excluir `public/storage` del contexto de build en `.dockerignore` (el symlink no se puede copiar al construir la imagen en Windows)
+- [x] Acordar convención de carpetas en `storage/app/public/`: `productos/` (Fase 4) y `comprobantes/` (Fase 5)
 
 ### Fase 3. Modelado de base de datos
 - [ ] Migraciones: `categorias`, `productos`, `usuarios` (con `rol`, `es_repartidor`, `balance`), `pedidos`, `detalle_pedido`
@@ -98,6 +102,8 @@ Este proyecto usa Docker **solo para PostgreSQL**; Laravel se ejecuta a través 
 ./scripts/backend.ps1 install
 ```
 
+> El `Dockerfile` incluye: PHP 8.4-cli-alpine, extensiones `pdo`, `pdo_pgsql`, `pgsql`, `zip`, `bcmath`, `intl` (requerida por Filament), y límites de subida de archivos ajustados (`upload_max_filesize=20M`, `post_max_size=20M`, `memory_limit=256M`). El `.dockerignore` excluye `public/storage` (symlink que no se puede copiar en builds de Windows).
+
 ### Ejecutar comandos artisan
 
 Usar siempre el script `backend.ps1`, que ya incluye las variables de entorno y el volumen montado para reflejar cambios de código en tiempo real:
@@ -124,10 +130,29 @@ docker run --rm `
 ### Levantar el backend (servidor de desarrollo)
 
 ```powershell
-./scripts/backend.ps1 start   # http://127.0.0.1:8000
+./scripts/backend.ps1 start   # http://127.0.0.1:8000 — panel admin en /admin
 ./scripts/backend.ps1 logs
 ./scripts/backend.ps1 stop
 ```
+
+### Rutina diaria — retomar el proyecto
+
+```powershell
+cd D:\Agromarket
+./scripts/docker.ps1 up          # 1. Levantar Postgres
+./scripts/docker.ps1 status      # 2. Esperar a que diga (healthy)
+./scripts/backend.ps1 start      # 3. Levantar Laravel
+# Abrir http://127.0.0.1:8000/admin
+```
+
+### Rutina diaria — apagar al terminar
+
+```powershell
+./scripts/backend.ps1 stop
+./scripts/docker.ps1 down
+```
+
+> `docker.ps1 down` (sin `-v`) detiene y borra el contenedor de Postgres, pero **no borra el volumen** `agromarket_postgres_data` — los datos persisten. Solo usar `docker-compose down -v` manualmente si se quiere resetear todo desde cero.
 
 ### Variables de entorno clave (`backend/.env`)
 
