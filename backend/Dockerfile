@@ -1,23 +1,22 @@
 FROM php:8.4-cli-alpine
 
-# Dependencias del sistema necesarias para Laravel + PostgreSQL
 RUN apk add --no-cache \
     postgresql-dev \
     libzip-dev \
     zip \
     unzip \
     git \
-    curl
+    curl \
+    icu-dev
 
-# Extensiones PHP necesarias
 RUN docker-php-ext-install \
     pdo \
     pdo_pgsql \
     pgsql \
     zip \
-    bcmath
+    bcmath \
+    intl
 
-# Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
