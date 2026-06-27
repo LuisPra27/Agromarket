@@ -53,10 +53,22 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 
 > **Pendiente para fase de Auth (Fase 8):** el modelo de autenticación usa la tabla `usuarios` (no la `users` default de Laravel). Habrá que apuntar el modelo `User`/guard de Sanctum a `usuarios` y revisar el campo `clave` vs `password`.
 
-### Fase 4. Panel Admin — Módulo Inventario
-- [ ] Filament Resource para `Producto` (nombre, precio, categoría, stock, foto)
-- [ ] Filament Resource para `Categoria`
-- [ ] Validaciones de formulario (stock ≥ 0, precio > 0)
+### Fase 4. Panel Admin — Módulo Inventario ✅ COMPLETA
+- [x] Modelo `Categoria` (relación hasMany con Producto)
+- [x] Modelo `Producto` (relación belongsTo con Categoria, casts de precio/stock)
+- [x] Filament Resource `CategoriaResource` (nombre, descripción, conteo de productos)
+- [x] Filament Resource `ProductoResource` (select de categoría, precio con validación > 0, stock con validación ≥ 0, upload de imagen, badge de color según stock)
+- [x] CRUD probado end-to-end: crear categoría, crear producto con foto, visualización de imagen en tabla y formulario
+
+> **Hallazgo técnico — servir imágenes (Windows + Docker + volumen montado):** la ruta estándar de Laravel `/storage/{archivo}` (vía symlink `public/storage`) no funciona en este entorno. El symlink creado por `php artisan storage:link` queda roto al verlo desde Windows (`Get-Item` devuelve `Target {}`), y aunque se reemplazó por una ruta personalizada, **cualquier URL que empiece con `/storage/`** es interceptada y devuelve 403 Forbidden — comportamiento específico del servidor de desarrollo embebido de PHP (`artisan serve`) al intentar resolver esa ruta como archivo estático. Los permisos del archivo en sí están correctos (confirmado con `ls -la` dentro del contenedor, proceso corre como `root`).
+>
+> **Solución adoptada:**
+> 1. Se eliminó el symlink `public/storage`.
+> 2. Se creó una ruta propia en `routes/web.php`: `GET /archivos/{path}`, que lee el archivo vía `Storage::disk('public')->get($path)` y lo devuelve manualmente con el `Content-Type` correcto (mapeo de extensión a MIME, ya que `Storage::mimeType()` no está declarado en los stubs y genera warning de Intelephense — aunque funciona en runtime, se evitó por completo).
+> 3. Se actualizó `config/filesystems.php` (disco `public`, clave `url`) para generar URLs con `/archivos` en vez de `/storage` — así Filament y los futuros endpoints de API generan automáticamente la URL correcta sin duplicar lógica.
+> 4. Se corrigió `APP_URL` en `.env` (debía incluir el puerto, `http://localhost:8000`, no solo `http://localhost`) — sin el puerto, las URLs generadas apuntaban al puerto 80 en vez de 8000, causando que las imágenes no cargaran en Filament sin ningún error visible.
+>
+> Este problema es específico del entorno de desarrollo local (Windows + volumen montado). En producción (Nginx, sin volumen montado, symlink creado dentro de la imagen vía `COPY`) no debería ocurrir, pero no es necesario revertir nada — `/archivos` funciona igual de bien ahí.
 
 ### Fase 5. Panel Admin — Módulo Caja / Validación
 - [ ] Vista de pedidos `pendiente_validacion` con imagen del comprobante
