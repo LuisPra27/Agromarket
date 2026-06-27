@@ -70,10 +70,17 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 >
 > Este problema es específico del entorno de desarrollo local (Windows + volumen montado). En producción (Nginx, sin volumen montado, symlink creado dentro de la imagen vía `COPY`) no debería ocurrir, pero no es necesario revertir nada — `/archivos` funciona igual de bien ahí.
 
-### Fase 5. Panel Admin — Módulo Caja / Validación
-- [ ] Vista de pedidos `pendiente_validacion` con imagen del comprobante
-- [ ] Botones "Aprobar" (genera QR + reduce stock) y "Rechazar"
-- [ ] Lógica del hash/QR en el backend
+### Fase 5. Panel Admin — Módulo Caja / Validación ✅ COMPLETA
+- [x] Modelo `Pedido` (belongsTo cliente/repartidor vía `Usuario`, hasMany `DetallePedido`, casts de total/pin_x/pin_y)
+- [x] Modelo `DetallePedido` (tabla `detalle_pedido` explícita por no seguir convención de pluralización, belongsTo a `Pedido` y `Producto`)
+- [x] Modelo `Usuario` (distinto del `User` de Sanctum/Laravel — ver nota de Fase 3 sobre unificación pendiente en Fase 8)
+- [x] `PedidoResource` filtrado a solo `estado = pendiente_validacion` (vía `getEloquentQuery()`)
+- [x] Columna de imagen mostrando el comprobante de pago directamente en la tabla
+- [x] Acción **"Aprobar"**: dentro de una transacción (`DB::transaction`), valida stock suficiente, decrementa stock de cada producto del detalle, genera `codigo_qr_hash` (UUID) y cambia estado a `preparando`
+- [x] Acción **"Rechazar"**: cambia estado a `rechazado` sin tocar stock
+- [x] Probado end-to-end con datos de prueba vía Tinker: aprobación generó QR hash y redujo stock correctamente (verificado directo en PostgreSQL)
+
+> **Nota de diseño:** se removió la opción de "crear" pedido desde el panel admin (`getPages()` sin la ruta `create`) — los pedidos los originan los clientes desde la app móvil (Fase 8+), el admin solo aprueba/rechaza los que ya existen.
 
 ### Fase 6. Panel Admin — Módulo Liquidación
 - [ ] Tabla de repartidores con balance acumulado
