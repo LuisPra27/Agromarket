@@ -23,7 +23,6 @@ function Run-Artisan {
         --add-host=host.docker.internal:host-gateway `
         --env-file $EnvFile `
         -e DB_HOST=host.docker.internal `
-        -v "${BackendPath}:/var/www/html" `
         --entrypoint php `
         $ImageName artisan @ArtisanArgs
 }
@@ -40,10 +39,15 @@ switch ($Command) {
             --add-host=host.docker.internal:host-gateway `
             --env-file $EnvFile `
             -e DB_HOST=host.docker.internal `
-            -v "${BackendPath}:/var/www/html" `
             --entrypoint php `
             $ImageName artisan serve --host=0.0.0.0 --port=8000 | Out-Null
         Write-Host "Backend iniciado. Usa './scripts/backend.ps1 logs' para ver salida."
+    }
+    "rebuild" {
+    Write-Host "Reconstruyendo imagen con el código actual..."
+    Set-Location $BackendPath
+    docker build -t $ImageName .
+    Write-Host "Imagen reconstruida. Reinicia el backend con 'start'."
     }
     "stop" {
         docker rm -f $ContainerName 2>$null | Out-Null
@@ -78,7 +82,6 @@ switch ($Command) {
             --add-host=host.docker.internal:host-gateway `
             --env-file $EnvFile `
             -e DB_HOST=host.docker.internal `
-            -v "${BackendPath}:/var/www/html" `
             --entrypoint php `
             $ImageName artisan tinker
     }
@@ -98,5 +101,6 @@ switch ($Command) {
         Write-Host "  cache-clear        - Limpiar cachés"
         Write-Host "  tinker             - Iniciar Tinker REPL"
         Write-Host "  routes             - Listar rutas API"
+        Write-Host "  rebuild            - Reconstruir imagen con código actualizado"
     }
 }

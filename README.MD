@@ -186,11 +186,16 @@ docker run --rm `
 
 ```powershell
 cd D:\Agromarket
+##Metodo Anterior
 ./scripts/docker.ps1 up          # 1. Levantar Postgres
 ./scripts/docker.ps1 status      # 2. Esperar a que diga (healthy)
 ./scripts/backend.ps1 start      # 3. Levantar Laravel
 # Abrir http://127.0.0.1:8000/admin
 ```
+##Metodo Nuevo
+./scripts/backend.ps1 stop
+./scripts/backend.ps1 rebuild
+./scripts/backend.ps1 start
 
 ### Rutina diaria — apagar al terminar
 
