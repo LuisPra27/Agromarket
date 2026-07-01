@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['cedula', 'nombre_completo', 'correo', 'clave', 'rol', 'es_repartidor', 'balance'])]
+#[Fillable(['cedula', 'nombre_completo', 'correo', 'clave', 'rol', 'estado_repartidor', 'facultad', 'balance'])]
 #[Hidden(['clave'])]
 class Usuario extends Model
 {
@@ -17,7 +17,6 @@ class Usuario extends Model
     protected function casts(): array
     {
         return [
-            'es_repartidor' => 'boolean',
             'balance' => 'decimal:2',
         ];
     }
@@ -30,5 +29,9 @@ class Usuario extends Model
     public function pedidosComoRepartidor(): HasMany
     {
         return $this->hasMany(Pedido::class, 'repartidor_id');
+    }
+    public function liquidaciones(): HasMany
+    {
+        return $this->hasMany(Liquidacion::class);
     }
 }

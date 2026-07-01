@@ -82,9 +82,28 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 
 > **Nota de diseño:** se removió la opción de "crear" pedido desde el panel admin (`getPages()` sin la ruta `create`) — los pedidos los originan los clientes desde la app móvil (Fase 8+), el admin solo aprueba/rechaza los que ya existen.
 
-### Fase 6. Panel Admin — Módulo Liquidación
-- [ ] Tabla de repartidores con balance acumulado
-- [ ] Acción "Resetear / Pagar Balance"
+### Fase 6. Panel Admin — Módulo Liquidación ✅ COMPLETA
+- [x] Migración `configuraciones` (clave única, valor, descripción) — tabla de configuración global del sistema
+- [x] Migración `liquidaciones` (FK a usuarios ON DELETE RESTRICT, monto_pagado, observaciones) — historial de pagos a repartidores
+- [x] Modelo `Configuracion` (tabla explícita `configuraciones`, helper estático `Configuracion::get('clave', $default)` para leer valores desde cualquier parte del código)
+- [x] Modelo `Liquidacion` (tabla explícita `liquidaciones`, belongsTo Usuario, cast decimal en monto_pagado)
+- [x] Relación `liquidaciones()` agregada al modelo `Usuario`
+- [x] Seeder inicial: `incentivo_repartidor = 0.25` (monto en USD por entrega, configurable desde el panel)
+- [x] Migración `add_repartidor_fields_to_usuarios_table`: elimina `es_repartidor` (boolean), agrega `estado_repartidor` (enum: no_postulado/pendiente/aprobado/rechazado) y `facultad` (nullable)
+- [x] `UsuarioResource` (Filament): tabla de usuarios con filtro por estado_repartidor, badge de color por estado, botones "Aprobar"/"Rechazar" visibles solo cuando estado=pendiente, campo clave con hash pendiente para Fase 8
+- [x] `LiquidacionResource` (Filament): vista filtrada solo a repartidores aprobados, balance con badge verde/gris, botón "Resetear/Pagar" visible solo si balance > 0 — al ejecutarse crea registro en `liquidaciones` (historial) y resetea balance a 0
+- [x] `ConfiguracionResource` (Filament): vista de configuraciones del sistema, clave deshabilitada (no editable), solo se edita el valor — el admin puede cambiar el incentivo por entrega sin tocar código
+- [x] Probado end-to-end: aprobación de repartidor, liquidación con historial registrado, edición de configuración global
+
+> **Decisión de diseño — flujo de postulación a repartidor:** cualquier usuario puede postular (cambia su estado a `pendiente`), pero necesita `cedula` (ya obligatorio desde registro) y `facultad` (obligatorio al postular, validación a nivel de formulario, no de BD). El admin aprueba/rechaza desde el panel. La `facultad` sirve como dato de trazabilidad en caso de incidentes de entrega.
+
+> **Decisión de diseño — correo institucional:** el formato es `e{cedula}@live.uleam.edu.ec`, asignado por la ULEAM vía Microsoft 365/Entra ID. Se evaluó OAuth con Microsoft pero se descartó para el MVP (requiere registro institucional en Azure). Se usa login propio con validación de formato del correo institucional (pendiente implementar en Fase 8). Microsoft login queda como mejora futura post-MVP.
+
+> **Decisión de diseño — incentivo configurable:** el monto por entrega ($0.25 por defecto) no está hardcodeado en el código sino en la tabla `configuraciones`. Se lee con `Configuracion::get('incentivo_repartidor', 0.25)` desde cualquier parte del sistema — el admin puede cambiarlo desde el panel sin necesidad de redeploy.
+
+> **Pendiente para Fase 8:** hashear la contraseña (`clave`) antes de guardar en `UsuarioResource` — actualmente se guarda en texto plano desde Filament (aceptable para desarrollo, no para producción).
+
+> **Nota técnica:** los modelos `Configuracion`, `Liquidacion` y `DetallePedido` requieren `protected $table` explícito porque Laravel pluraliza en inglés (`configuracions`, `liquidacions`) y las tablas reales están en español (`configuraciones`, `liquidaciones`). Patrón a seguir en todos los modelos con nombres en español de este proyecto.
 
 ### Fase 7. Instalación de React Native
 - [ ] Setup del proyecto (Expo o CLI) + TypeScript
