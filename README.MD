@@ -105,15 +105,37 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 
 > **Nota técnica:** los modelos `Configuracion`, `Liquidacion` y `DetallePedido` requieren `protected $table` explícito porque Laravel pluraliza en inglés (`configuracions`, `liquidacions`) y las tablas reales están en español (`configuraciones`, `liquidaciones`). Patrón a seguir en todos los modelos con nombres en español de este proyecto.
 
-### Fase 7. Instalación de React Native
-- [ ] Setup del proyecto (Expo o CLI) + TypeScript
-- [ ] Estructura de carpetas (`screens/`, `services/`, `navigation/`)
+### Fase 7. Instalación de React Native ✅ COMPLETA
+- [x] Proyecto Expo SDK 57 creado en `frontend/mobile` con template `blank-typescript`
+- [x] Dependencias instaladas: axios, @react-native-async-storage/async-storage, expo-image-picker, expo-camera, expo-notifications, expo-constants, @react-navigation/native, @react-navigation/native-stack, @react-navigation/bottom-tabs, react-native-screens, react-native-safe-area-context
+- [x] Estructura de carpetas: `src/screens/auth`, `src/screens/cliente`, `src/screens/repartidor`, `src/navigation`, `src/services`, `src/components`, `src/hooks`, `src/types`, `src/store`
+- [x] Tipos TypeScript base (`src/types/index.ts`): interfaces Usuario, Categoria, Producto, DetallePedido, Pedido, ItemCarrito, ApiResponse, AuthResponse, PaginatedResponse
+- [x] Servicio Axios (`src/services/api.ts`): interceptores para token Sanctum automático y manejo global de 401
+- [x] AuthContext (`src/store/AuthContext.tsx`): estado global de sesión con login/logout/actualizarUsuario persistido en AsyncStorage
+- [x] Navegación base (`src/navigation/AppNavigator.tsx` + `ClienteTabs.tsx`): patrón Uber — tabs cambian según estado_repartidor del usuario
+- [x] Pantallas placeholder creadas para todas las rutas (LoginScreen, CatalogoScreen, MisPedidosScreen, PerfilScreen, RepartidorTabsScreen)
+- [x] App.tsx conectado con AuthProvider + AppNavigator
+- [x] Probado en celular físico Android vía Expo Go — muestra LoginScreen correctamente
 
-### Fase 8. Construcción de la API REST
-- [ ] Endpoints de autenticación (Sanctum)
-- [ ] Endpoint catálogo (`stock_fisico > 0`)
+> **Decisión de diseño — app única (patrón Uber):** una sola app para clientes y repartidores. El tab "Repartidor" aparece dinámicamente solo si `estado_repartidor === 'aprobado'`. Cualquier usuario puede postular desde su Perfil.
+
+> **Decisión de producción:** en producción se usa EAS Build (`npx eas build --platform android`) para generar un APK/AAB independiente sin necesidad de Expo Go. Se compila en la nube sin requerir Android Studio localmente.
+
+> **IP local para desarrollo:** el celular se conecta al backend usando `http://192.168.100.13:8000` (IP WiFi local de la PC de desarrollo). Si la red cambia, actualizar `API_URL` en `src/services/api.ts`.
+
+### Fase 8. Construcción de la API REST 🚧 EN PROGRESO
+- [x] Registrar `routes/api.php` en `bootstrap/app.php` (Laravel 11+ no lo carga automáticamente)
+- [x] Migración `add_expo_push_token_to_usuarios_table`
+- [x] Modelo `Usuario` extendido como `Authenticatable` + `HasApiTokens` + cast `hashed` en `clave` + `$authPasswordName = 'clave'`
+- [x] `config/auth.php` actualizado para usar `Usuario::class` en vez de `User::class`
+- [x] `AuthController` con endpoints: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `POST /api/auth/push-token`
+- [x] Login probado desde PowerShell y desde app móvil — devuelve token Sanctum + datos de usuario
+- [x] Pantalla `LoginScreen` real conectada al backend — redirige automáticamente a tabs tras login exitoso
+- [ ] Endpoint catálogo (`GET /api/productos`)
 - [ ] Endpoint checkout (carrito + subida de comprobante)
 - [ ] Endpoint `POST /api/orders/{id}/complete` (escaneo QR)
+- [ ] Endpoint `POST /api/orders/{id}/accept` (repartidor acepta viaje)
+- [ ] Endpoint `GET /api/pedidos` (mis pedidos del cliente)
 
 ### Fase 9. Conexión Backend ↔ Frontend
 - [ ] Cliente HTTP (Axios) en React Native
@@ -180,6 +202,16 @@ docker run --rm `
 ./scripts/backend.ps1 start   # http://127.0.0.1:8000 — panel admin en /admin
 ./scripts/backend.ps1 logs
 ./scripts/backend.ps1 stop
+```
+
+### Cuando se modifica código PHP (Fase 8+)
+
+A partir de la Fase 8 el backend ya no usa volumen montado (se adoptó el patrón del Observatorio ULEAM: código copiado dentro de la imagen para mejor performance). Cualquier cambio en archivos PHP requiere reconstruir la imagen antes de que se refleje:
+
+```powershell
+./scripts/backend.ps1 stop
+./scripts/backend.ps1 rebuild
+./scripts/backend.ps1 start
 ```
 
 ### Rutina diaria — retomar el proyecto
