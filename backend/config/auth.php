@@ -42,6 +42,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'usuario' => [
+            'driver' => 'sanctum',
+            'provider' => 'usuarios',
+        ],
     ],
 
     /*
@@ -62,9 +66,13 @@ return [
     */
 
     'providers' => [
-    'users' => [
-        'driver' => 'eloquent',
-        'model' => App\Models\Usuario::class,
+        'users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\User::class,
+        ],
+        'usuarios' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Usuario::class,
         ],
     ],
 

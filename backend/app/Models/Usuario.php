@@ -11,15 +11,8 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'cedula',
-    'nombre_completo',
-    'correo',
-    'clave',
-    'rol',
-    'estado_repartidor',
-    'facultad',
-    'balance',
-    'expo_push_token',
+    'cedula', 'nombre_completo', 'correo', 'clave', 'rol',
+    'estado_repartidor', 'facultad', 'balance', 'expo_push_token',
 ])]
 #[Hidden(['clave'])]
 class Usuario extends Authenticatable
@@ -27,7 +20,6 @@ class Usuario extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'usuarios';
-
     protected $authPasswordName = 'clave';
 
     protected function casts(): array

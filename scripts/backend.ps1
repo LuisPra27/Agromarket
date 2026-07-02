@@ -49,6 +49,24 @@ switch ($Command) {
     docker build -t $ImageName .
     Write-Host "Imagen reconstruida. Reinicia el backend con 'start'."
     }
+    "rebuild-restart" {
+    Write-Host "Deteniendo backend..."
+    docker rm -f $ContainerName 2>$null | Out-Null
+    Write-Host "Reconstruyendo imagen..."
+    Set-Location $BackendPath
+    docker build -t $ImageName .
+    Set-Location (Split-Path -Parent $ScriptDir)
+    Write-Host "Iniciando backend..."
+    docker run -d `
+        --name $ContainerName `
+        -p 8000:8000 `
+        --add-host=host.docker.internal:host-gateway `
+        --env-file $EnvFile `
+        -e DB_HOST=host.docker.internal `
+        --entrypoint php `
+        $ImageName artisan serve --host=0.0.0.0 --port=8000 | Out-Null
+    Write-Host "Listo. Backend corriendo en http://127.0.0.1:8000"
+    }
     "stop" {
         docker rm -f $ContainerName 2>$null | Out-Null
         Write-Host "Backend detenido."
@@ -102,5 +120,6 @@ switch ($Command) {
         Write-Host "  tinker             - Iniciar Tinker REPL"
         Write-Host "  routes             - Listar rutas API"
         Write-Host "  rebuild            - Reconstruir imagen con código actualizado"
+        Write-Host "  rebuild-restart    - Detener, reconstruir e iniciar backend"
     }
 }

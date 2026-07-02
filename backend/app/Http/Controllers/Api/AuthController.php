@@ -13,25 +13,25 @@ class AuthController extends Controller
 {
     public function login(Request $request): JsonResponse
     {
-        $request->validate([
-            'correo' => 'required|email',
-            'clave'  => 'required|string',
+    $request->validate([
+        'correo' => 'required|email',
+        'clave'  => 'required|string',
+    ]);
+
+    $usuario = Usuario::where('correo', $request->correo)->first();
+
+    if (! $usuario || ! Hash::check($request->clave, $usuario->clave)) {
+        throw ValidationException::withMessages([
+            'correo' => ['Las credenciales no son correctas.'],
         ]);
+    }
 
-        $usuario = Usuario::where('correo', $request->correo)->first();
+    $token = $usuario->createToken('mobile')->plainTextToken;
 
-        if (! $usuario || ! Hash::check($request->clave, $usuario->clave)) {
-            throw ValidationException::withMessages([
-                'correo' => ['Las credenciales no son correctas.'],
-            ]);
-        }
-
-        $token = $usuario->createToken('mobile')->plainTextToken;
-
-        return response()->json([
-            'token'   => $token,
-            'usuario' => $usuario,
-        ]);
+    return response()->json([
+        'token'   => $token,
+        'usuario' => $usuario,
+    ]);
     }
 
     public function logout(Request $request): JsonResponse
