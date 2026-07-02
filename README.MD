@@ -186,16 +186,11 @@ docker run --rm `
 
 ```powershell
 cd D:\Agromarket
-##Metodo Anterior
 ./scripts/docker.ps1 up          # 1. Levantar Postgres
 ./scripts/docker.ps1 status      # 2. Esperar a que diga (healthy)
 ./scripts/backend.ps1 start      # 3. Levantar Laravel
 # Abrir http://127.0.0.1:8000/admin
 ```
-##Metodo Nuevo
-./scripts/backend.ps1 stop
-./scripts/backend.ps1 rebuild
-./scripts/backend.ps1 start
 
 ### Rutina diaria — apagar al terminar
 
@@ -227,6 +222,14 @@ DB_PASSWORD=<tu password definido en docker-compose.yml>
 ```
 agromarket-fcvt/
 ├── backend/        # Laravel 13 + Filament (API + Panel Admin)
+├── frontend/
+│   └── mobile/     # Expo + React Native + TypeScript (app única para cliente y repartidor)
 ├── scripts/        # Scripts de automatización (docker.ps1, backend.ps1)
 └── docker-compose.yml
 ```
+
+> **Decisión de diseño — app única (patrón Uber):** en vez de dos apps separadas (cliente y repartidor), se usa una sola app que cambia de "modo" según el rol y estado del usuario:
+> - `rol = 'cliente'` + `estado_repartidor != 'aprobado'` → tabs: Catálogo, Mis Pedidos, Perfil
+> - `rol = 'cliente'` + `estado_repartidor = 'aprobado'` → tabs: Catálogo, Mis Pedidos, **Modo Repartidor**, Perfil
+> - Cualquier usuario puede postular a repartidor desde su Perfil
+> - El tab "Modo Repartidor" incluye: Tablero de Viajes, Escáner QR, Billetera
