@@ -1,0 +1,353 @@
+import React, { useState, useEffect} from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  Alert, ActivityIndicator, Image, TextInput, Platform,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { useCarrito } from '../../store/CarritoContext';
+import { useAuth } from '../../store/AuthContext';
+import api from '../../services/api';
+import { Colors } from '../../constants/colors';
+import { useNavigation } from '@react-navigation/native';
+
+type MetodoEntrega = 'retiro' | 'delivery';
+
+export default function CheckoutScreen() {
+  const { items, total, limpiar } = useCarrito();
+  const { usuario } = useAuth();
+  const navigation = useNavigation<any>();
+
+  const [metodo, setMetodo] = useState<MetodoEntrega>('retiro');
+  const [puntoEncuentro, setPuntoEncuentro] = useState('');
+  const [comprobante, setComprobante] = useState<any>(null);
+  const [cargando, setCargando] = useState(false);
+  const [cuentas, setCuentas] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    api.get('/configuraciones/publicas')
+      .then(r => setCuentas(r.data))
+      .catch(() => {});
+  }, []);
+
+  const seleccionarComprobante = async () => {
+    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permiso.granted) {
+      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para subir el comprobante.');
+      return;
+    }
+
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsEditing: false,
+    });
+
+    if (!resultado.canceled && resultado.assets[0]) {
+      setComprobante(resultado.assets[0]);
+    }
+  };
+
+  const tomarFoto = async () => {
+    const permiso = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permiso.granted) {
+      Alert.alert('Permiso requerido', 'Necesitamos acceso a la cámara.');
+      return;
+    }
+
+    const resultado = await ImagePicker.launchCameraAsync({
+      quality: 0.8,
+      allowsEditing: false,
+    });
+
+    if (!resultado.canceled && resultado.assets[0]) {
+      setComprobante(resultado.assets[0]);
+    }
+  };
+
+  const confirmarPedido = async () => {
+    if (!comprobante) {
+      Alert.alert('Falta el comprobante', 'Por favor sube la foto de tu transferencia.');
+      return;
+    }
+
+    if (metodo === 'delivery' && !puntoEncuentro.trim()) {
+      Alert.alert('Falta el punto de encuentro', 'Por favor indica dónde te encontramos.');
+      return;
+    }
+
+    setCargando(true);
+    try {
+      const formData = new FormData();
+
+      formData.append('metodo_entrega', metodo);
+      formData.append('comprobante', {
+        uri: comprobante.uri,
+        name: `comprobante_${Date.now()}.jpg`,
+        type: 'image/jpeg',
+      } as any);
+
+      items.forEach((item, index) => {
+        formData.append(`items[${index}][producto_id]`, item.producto.id.toString());
+        formData.append(`items[${index}][cantidad]`, item.cantidad.toString());
+      });
+
+      if (metodo === 'delivery') {
+        formData.append('punto_encuentro', puntoEncuentro);
+      }
+
+      const response = await api.post('/pedidos', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      limpiar();
+      Alert.alert(
+        '¡Pedido enviado!',
+        'Tu pedido está en revisión. Te notificaremos cuando sea aprobado.',
+        [{ text: 'Ver mis pedidos', onPress: () => navigation.navigate('Mis Pedidos') }]
+      );
+    } catch (error: any) {
+      const mensaje = error.response?.data?.message || 'Error al crear el pedido.';
+      Alert.alert('Error', mensaje);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+
+      {/* Resumen del carrito */}
+      <View style={styles.seccion}>
+        <Text style={styles.titulo}>Resumen del pedido</Text>
+        {items.map(item => (
+          <View key={item.producto.id} style={styles.itemRow}>
+            <Text style={styles.itemNombre}>
+              {item.producto.nombre} × {item.cantidad}
+            </Text>
+            <Text style={styles.itemPrecio}>
+              ${(Number(item.producto.precio) * item.cantidad).toFixed(2)}
+            </Text>
+          </View>
+        ))}
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Total a pagar:</Text>
+          <Text style={styles.totalMonto}>${total.toFixed(2)}</Text>
+        </View>
+      </View>
+
+      {/* Método de entrega */}
+      <View style={styles.seccion}>
+        <Text style={styles.titulo}>Método de entrega</Text>
+        <View style={styles.metodoRow}>
+          <TouchableOpacity
+            style={[styles.metodoBtn, metodo === 'retiro' && styles.metodoBtnActivo]}
+            onPress={() => setMetodo('retiro')}
+          >
+            <Text style={[styles.metodoBtnTexto, metodo === 'retiro' && styles.metodoBtnTextoActivo]}>
+              🏪 Retiro en local
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.metodoBtn, metodo === 'delivery' && styles.metodoBtnActivo]}
+            onPress={() => setMetodo('delivery')}
+          >
+            <Text style={[styles.metodoBtnTexto, metodo === 'delivery' && styles.metodoBtnTextoActivo]}>
+              🛵 Delivery
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {metodo === 'delivery' && (
+          <TextInput
+            style={styles.input}
+            placeholder="¿Dónde te encontramos? Ej: Facultad de Ingeniería, piso 2"
+            placeholderTextColor={Colors.grisMedio}
+            value={puntoEncuentro}
+            onChangeText={setPuntoEncuentro}
+            multiline
+            numberOfLines={3}
+          />
+        )}
+      </View>
+
+      {/* Datos para transferencia */}
+      <View style={styles.seccion}>
+        <Text style={styles.titulo}>💳 Datos para la transferencia</Text>
+        <Text style={styles.subtitulo}>
+          Transfiere exactamente <Text style={styles.montoDestacado}>${total.toFixed(2)}</Text> a esta cuenta:
+        </Text>
+
+        <View style={styles.cuentaContainer}>
+          {[
+            { label: 'Banco', valor: cuentas.cuenta_banco },
+            { label: 'Tipo de cuenta', valor: cuentas.cuenta_tipo },
+            { label: 'Número de cuenta', valor: cuentas.cuenta_numero },
+            { label: 'Titular', valor: cuentas.cuenta_titular },
+            { label: 'Cédula / RUC', valor: cuentas.cuenta_cedula },
+          ].map(({ label, valor }) => (
+            <View key={label} style={styles.cuentaFila}>
+              <Text style={styles.cuentaLabel}>{label}:</Text>
+              <Text style={styles.cuentaValor}>{valor ?? '—'}</Text>
+            </View>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          style={styles.btnCopiar}
+          onPress={() => {
+            // En el futuro: Clipboard.setString(cuentas.cuenta_numero)
+            Alert.alert('Número de cuenta', cuentas.cuenta_numero ?? '');
+          }}
+        >
+          <Text style={styles.btnCopiarTexto}>📋 Ver número de cuenta</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Comprobante de pago */}
+      <View style={styles.seccion}>
+        <Text style={styles.titulo}>Comprobante de transferencia</Text>
+        <Text style={styles.subtitulo}>
+          Transfiere ${total.toFixed(2)} y sube la captura de pantalla del comprobante.
+        </Text>
+
+        {comprobante ? (
+          <View style={styles.comprobantePreview}>
+            <Image source={{ uri: comprobante.uri }} style={styles.comprobanteImg} resizeMode="cover" />
+            <TouchableOpacity
+              style={styles.btnCambiar}
+              onPress={seleccionarComprobante}
+            >
+              <Text style={styles.btnCambiarTexto}>Cambiar imagen</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.comprobanteOpciones}>
+            <TouchableOpacity style={styles.btnComprobante} onPress={seleccionarComprobante}>
+              <Text style={styles.btnComprobanteTexto}>📁 Elegir de galería</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.btnComprobante} onPress={tomarFoto}>
+              <Text style={styles.btnComprobanteTexto}>📷 Tomar foto</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* Botón confirmar */}
+      <TouchableOpacity
+        style={[styles.btnConfirmar, cargando && styles.btnDeshabilitado]}
+        onPress={confirmarPedido}
+        disabled={cargando}
+      >
+        {cargando ? (
+          <ActivityIndicator color={Colors.blanco} />
+        ) : (
+          <Text style={styles.btnConfirmarTexto}>Confirmar pedido</Text>
+        )}
+      </TouchableOpacity>
+
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.fondo },
+  content: { padding: 16, gap: 16, paddingBottom: 40 },
+  seccion: {
+    backgroundColor: Colors.blanco,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.grisClaro,
+    gap: 8,
+  },
+  titulo: { fontSize: 16, fontWeight: '700', color: Colors.negro, marginBottom: 4 },
+  subtitulo: { fontSize: 13, color: Colors.grisMedio },
+  itemRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  itemNombre: { fontSize: 14, color: Colors.grisOscuro, flex: 1 },
+  itemPrecio: { fontSize: 14, fontWeight: '600', color: Colors.negro },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: Colors.grisClaro,
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  totalLabel: { fontSize: 15, fontWeight: '600', color: Colors.grisOscuro },
+  totalMonto: { fontSize: 18, fontWeight: 'bold', color: Colors.verde },
+  metodoRow: { flexDirection: 'row', gap: 12 },
+  metodoBtn: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: Colors.grisClaro,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+  },
+  metodoBtnActivo: { borderColor: Colors.verde, backgroundColor: '#f0faf0' },
+  metodoBtnTexto: { fontSize: 13, color: Colors.grisMedio, fontWeight: '500' },
+  metodoBtnTextoActivo: { color: Colors.verde, fontWeight: '700' },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.grisClaro,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: Colors.negro,
+    textAlignVertical: 'top',
+    marginTop: 8,
+  },
+  comprobanteOpciones: { flexDirection: 'row', gap: 12 },
+  btnComprobante: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: Colors.grisClaro,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    borderStyle: 'dashed',
+  },
+  btnComprobanteTexto: { fontSize: 13, color: Colors.grisOscuro },
+  comprobantePreview: { alignItems: 'center', gap: 8 },
+  comprobanteImg: { width: '100%', height: 200, borderRadius: 12 },
+  btnCambiar: {
+    borderWidth: 1,
+    borderColor: Colors.verde,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  btnCambiarTexto: { color: Colors.verde, fontSize: 13 },
+  btnConfirmar: {
+    backgroundColor: Colors.verde,
+    borderRadius: 14,
+    paddingVertical: 18,
+    alignItems: 'center',
+  },
+  btnDeshabilitado: { opacity: 0.6 },
+  btnConfirmarTexto: { color: Colors.blanco, fontSize: 16, fontWeight: '700' },
+
+  cuentaContainer: {
+  backgroundColor: Colors.fondo,
+  borderRadius: 10,
+  padding: 12,
+  gap: 8,
+  },
+  cuentaFila: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cuentaLabel: { fontSize: 13, color: Colors.grisMedio, flex: 1 },
+  cuentaValor: { fontSize: 13, fontWeight: '600', color: Colors.negro, flex: 1, textAlign: 'right' },
+  montoDestacado: { fontWeight: 'bold', color: Colors.verde },
+  btnCopiar: {
+    borderWidth: 1,
+    borderColor: Colors.verde,
+    borderRadius: 10,
+    padding: 10,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  btnCopiarTexto: { color: Colors.verde, fontSize: 13, fontWeight: '600' },
+});

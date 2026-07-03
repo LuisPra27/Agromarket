@@ -3,14 +3,21 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\ProductoController;
+use App\Http\Controllers\Api\PedidoController;
 use Illuminate\Support\Facades\Route;
 
-// Rutas públicas (sin token)
+// Rutas públicas
+Route::get('configuraciones/publicas', function () {
+    $claves = ['cuenta_banco', 'cuenta_numero', 'cuenta_tipo', 'cuenta_titular', 'cuenta_cedula'];
+    $configs = \App\Models\Configuracion::whereIn('clave', $claves)->get()
+        ->pluck('valor', 'clave');
+    return response()->json($configs);
+});
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
 });
 
-// Rutas protegidas (requieren token Sanctum)
+// Rutas protegidas
 Route::middleware('auth:usuario')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
@@ -22,4 +29,9 @@ Route::middleware('auth:usuario')->group(function () {
     Route::get('productos', [ProductoController::class, 'index']);
     Route::get('productos/{producto}', [ProductoController::class, 'show']);
     Route::get('categorias', [CategoriaController::class, 'index']);
+
+    // Pedidos
+    Route::get('pedidos', [PedidoController::class, 'index']);
+    Route::post('pedidos', [PedidoController::class, 'store']);
+    Route::get('pedidos/{pedido}', [PedidoController::class, 'show']);
 });

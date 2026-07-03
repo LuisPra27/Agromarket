@@ -10,6 +10,8 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class UsuarioResource extends Resource
 {
@@ -144,5 +146,14 @@ class UsuarioResource extends Resource
             'create' => Pages\CreateUsuario::route('/create'),
             'edit' => Pages\EditUsuario::route('/{record}/edit'),
         ];
+    }
+    public static function canEdit(Model $record): bool
+    {
+        return $record->rol !== 'administrador';
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return $record->rol !== 'administrador';
     }
 }

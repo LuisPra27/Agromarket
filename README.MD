@@ -78,6 +78,11 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 - [x] Columna de imagen mostrando el comprobante de pago directamente en la tabla
 - [x] Acción **"Aprobar"**: dentro de una transacción (`DB::transaction`), valida stock suficiente, decrementa stock de cada producto del detalle, genera `codigo_qr_hash` (UUID) y cambia estado a `preparando`
 - [x] Acción **"Rechazar"**: cambia estado a `rechazado` sin tocar stock
+- [x] Auto-refresh de la tabla de pedidos cada 10 segundos (`poll('10s')` en `PedidoResource`)
+- [x] Título dinámico en la vista de Caja/Validación con conteo de pendientes (ej. `Caja / Validación (3 pendientes)`)
+- [x] Notificación visual automática cuando llegan pedidos nuevos mientras el admin tiene abierta la vista
+- [x] Columna `Productos solicitados` en la tabla (cantidad + nombre por cada ítem del pedido)
+- [x] Badge dinámico en el menú lateral de Filament para `Caja / Validación` con cantidad de pedidos pendientes
 - [x] Probado end-to-end con datos de prueba vía Tinker: aprobación generó QR hash y redujo stock correctamente (verificado directo en PostgreSQL)
 
 > **Nota de diseño:** se removió la opción de "crear" pedido desde el panel admin (`getPages()` sin la ruta `create`) — los pedidos los originan los clientes desde la app móvil (Fase 8+), el admin solo aprueba/rechaza los que ya existen.
@@ -131,11 +136,13 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 - [x] `AuthController` con endpoints: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `POST /api/auth/push-token`
 - [x] Login probado desde PowerShell y desde app móvil — devuelve token Sanctum + datos de usuario
 - [x] Pantalla `LoginScreen` real conectada al backend — redirige automáticamente a tabs tras login exitoso
-- [ ] Endpoint catálogo (`GET /api/productos`)
-- [ ] Endpoint checkout (carrito + subida de comprobante)
+- [x] Endpoint catálogo (`GET /api/productos`)
+- [x] Endpoint categorías (`GET /api/categorias`)
+- [x] Endpoint checkout (`POST /api/pedidos`, carrito + subida de comprobante)
+- [x] Endpoint `GET /api/pedidos` (mis pedidos del cliente)
+- [x] Endpoint `GET /api/pedidos/{id}` (detalle de pedido del cliente autenticado)
 - [ ] Endpoint `POST /api/orders/{id}/complete` (escaneo QR)
 - [ ] Endpoint `POST /api/orders/{id}/accept` (repartidor acepta viaje)
-- [ ] Endpoint `GET /api/pedidos` (mis pedidos del cliente)
 
 ### Fase 9. Conexión Backend ↔ Frontend
 - [ ] Cliente HTTP (Axios) en React Native
@@ -175,7 +182,7 @@ Este proyecto usa Docker **solo para PostgreSQL**; Laravel se ejecuta a través 
 
 ### Ejecutar comandos artisan
 
-Usar siempre el script `backend.ps1`, que ya incluye las variables de entorno y el volumen montado para reflejar cambios de código en tiempo real:
+Usar siempre el script `backend.ps1`, que ya incluye las variables de entorno del backend:
 
 ```powershell
 ./scripts/backend.ps1 migrate
@@ -203,6 +210,8 @@ docker run --rm `
 ./scripts/backend.ps1 logs
 ./scripts/backend.ps1 stop
 ```
+
+> El backend monta automáticamente `backend/storage/app/public` dentro del contenedor (`/var/www/html/storage/app/public`) para que las imágenes/comprobantes no se pierdan al usar `rebuild-restart`.
 
 ### Cuando se modifica código PHP (Fase 8+)
 

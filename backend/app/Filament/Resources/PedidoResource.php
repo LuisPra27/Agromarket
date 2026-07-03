@@ -22,6 +22,20 @@ class PedidoResource extends Resource
 
     protected static ?string $navigationLabel = 'Caja / Validación';
 
+    public static function getNavigationBadge(): ?string
+    {
+        $pendientes = static::getModel()::query()
+            ->where('estado', 'pendiente_validacion')
+            ->count();
+
+        return $pendientes > 0 ? (string) $pendientes : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
@@ -53,6 +67,8 @@ class PedidoResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->poll('10s')
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['cliente', 'detalles.producto']))
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('# Pedido')
@@ -60,6 +76,19 @@ class PedidoResource extends Resource
                 Tables\Columns\TextColumn::make('cliente.nombre_completo')
                     ->label('Cliente')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('productos_solicitados')
+                    ->label('Productos solicitados')
+                    ->getStateUsing(fn (Pedido $record): array => $record->detalles
+                        ->map(function ($detalle): string {
+                            $cantidad = (int) $detalle->cantidad;
+                            $nombre = $detalle->producto?->nombre ?? 'Producto no disponible';
+
+                            return "{$cantidad}x {$nombre}";
+                        })
+                        ->all())
+                    ->listWithLineBreaks()
+                    ->bulleted()
+                    ->searchable(false),
                 Tables\Columns\TextColumn::make('total')
                     ->money('USD')
                     ->sortable(),

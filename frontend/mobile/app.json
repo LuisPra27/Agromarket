@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Agromarket ULEAM",
+    "slug": "agromarket-uleam",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,6 +20,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Agromarket necesita acceso a tu galeria para subir el comprobante de pago.",
+          "cameraPermission": "Agromarket necesita acceso a tu camara para subir el comprobante de pago."
+        }
+      ]
+    ]
   }
 }

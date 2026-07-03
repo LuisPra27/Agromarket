@@ -57,6 +57,8 @@ export interface Pedido {
   detalles?: DetallePedido[];
   cliente?: Usuario;
   repartidor?: Usuario | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // ─── Carrito (estado local, no viene de la API) ──────────

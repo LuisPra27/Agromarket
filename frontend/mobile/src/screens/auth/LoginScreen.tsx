@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  View, Text, TextInput, TouchableOpacity,
+  StyleSheet, Alert, ActivityIndicator,
+  KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { useAuth } from '../../store/AuthContext';
 import api from '../../services/api';
 import { AuthResponse } from '../../types';
+import { Colors } from '../../constants/colors';
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -25,14 +20,9 @@ export default function LoginScreen() {
       Alert.alert('Error', 'Por favor ingresa tu correo y contraseña.');
       return;
     }
-
     setCargando(true);
     try {
-      const response = await api.post<AuthResponse>('/auth/login', {
-        correo,
-        clave,
-      });
-
+      const response = await api.post<AuthResponse>('/auth/login', { correo, clave });
       await login(response.data.token, response.data.usuario);
     } catch (error: any) {
       const mensaje =
@@ -51,13 +41,20 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.inner}>
-        <Text style={styles.titulo}>Agromarket</Text>
-        <Text style={styles.subtitulo}>FCVT — ULEAM</Text>
+        {/* Logo */}
+        <Image
+          source={require('../../../assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+
+        <Text style={styles.bienvenida}>Bienvenido</Text>
+        <Text style={styles.subtitulo}>Inicia sesión con tu correo institucional</Text>
 
         <TextInput
           style={styles.input}
-          placeholder="Correo institucional"
-          placeholderTextColor="#9ca3af"
+          placeholder="e0000000000@live.uleam.edu.ec"
+          placeholderTextColor={Colors.grisMedio}
           value={correo}
           onChangeText={setCorreo}
           keyboardType="email-address"
@@ -68,7 +65,7 @@ export default function LoginScreen() {
         <TextInput
           style={styles.input}
           placeholder="Contraseña"
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={Colors.grisMedio}
           value={clave}
           onChangeText={setClave}
           secureTextEntry
@@ -80,7 +77,7 @@ export default function LoginScreen() {
           disabled={cargando}
         >
           {cargando ? (
-            <ActivityIndicator color="#ffffff" />
+            <ActivityIndicator color={Colors.blanco} />
           ) : (
             <Text style={styles.botonTexto}>Iniciar sesión</Text>
           )}
@@ -91,52 +88,40 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  inner: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  titulo: {
-    fontSize: 36,
+  container: { flex: 1, backgroundColor: Colors.fondo },
+  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
+  logo: { width: '100%', height: 180, marginBottom: 24, alignSelf: 'center' },
+  bienvenida: {
+    fontSize: 26,
     fontWeight: 'bold',
-    color: '#16a34a',
+    color: Colors.verde,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   subtitulo: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 13,
+    color: Colors.grisMedio,
     textAlign: 'center',
-    marginBottom: 48,
+    marginBottom: 36,
   },
   input: {
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.blanco,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: Colors.grisClaro,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    fontSize: 16,
-    color: '#111827',
+    fontSize: 15,
+    color: Colors.negro,
     marginBottom: 16,
   },
   boton: {
-    backgroundColor: '#16a34a',
+    backgroundColor: Colors.verde,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
   },
-  botonDeshabilitado: {
-    opacity: 0.6,
-  },
-  botonTexto: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  botonDeshabilitado: { opacity: 0.6 },
+  botonTexto: { color: Colors.blanco, fontSize: 16, fontWeight: '600' },
 });

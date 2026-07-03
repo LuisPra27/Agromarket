@@ -5,6 +5,7 @@ $BackendPath = Join-Path (Split-Path -Parent $ScriptDir) "backend"
 $ImageName = "agromarket-backend"
 $ContainerName = "agromarket-backend-dev"
 $EnvFile = Join-Path $BackendPath ".env"
+$PublicStoragePath = Join-Path $BackendPath "storage\app\public"
 
 Set-Location $BackendPath
 
@@ -13,6 +14,12 @@ function Ensure-Image {
     if (-not $exists) {
         Write-Host "Imagen $ImageName no encontrada. Construyendo..."
         docker build -t $ImageName -f Dockerfile .
+    }
+}
+
+function Ensure-StoragePath {
+    if (-not (Test-Path $PublicStoragePath)) {
+        New-Item -ItemType Directory -Path $PublicStoragePath -Force | Out-Null
     }
 }
 
@@ -30,12 +37,14 @@ function Run-Artisan {
 switch ($Command) {
     "start" {
         Ensure-Image
+        Ensure-StoragePath
         Write-Host "Iniciando backend en http://127.0.0.1:8000 ..."
         docker rm -f $ContainerName 2>$null | Out-Null
         docker run -d `
             --name $ContainerName `
             --rm `
             -p 8000:8000 `
+            -v "${PublicStoragePath}:/var/www/html/storage/app/public" `
             --add-host=host.docker.internal:host-gateway `
             --env-file $EnvFile `
             -e DB_HOST=host.docker.internal `
@@ -52,6 +61,7 @@ switch ($Command) {
     "rebuild-restart" {
     Write-Host "Deteniendo backend..."
     docker rm -f $ContainerName 2>$null | Out-Null
+    Ensure-StoragePath
     Write-Host "Reconstruyendo imagen..."
     Set-Location $BackendPath
     docker build -t $ImageName .
@@ -60,6 +70,7 @@ switch ($Command) {
     docker run -d `
         --name $ContainerName `
         -p 8000:8000 `
+        -v "${PublicStoragePath}:/var/www/html/storage/app/public" `
         --add-host=host.docker.internal:host-gateway `
         --env-file $EnvFile `
         -e DB_HOST=host.docker.internal `

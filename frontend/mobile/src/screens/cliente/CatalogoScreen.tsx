@@ -1,35 +1,25 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  ActivityIndicator,
-  RefreshControl,
+  View, Text, FlatList, TextInput, TouchableOpacity,
+  Image, StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useProductos, useCategorias } from '../../hooks/useProductos';
+import { useCarrito } from '../../store/CarritoContext';
 import { API_URL } from '../../services/api';
 import { Producto } from '../../types';
-import { useCarrito } from '../../store/CarritoContext';
 
 export default function CatalogoScreen() {
   const [categoriaId, setCategoriaId] = useState<number | undefined>();
   const [buscar, setBuscar] = useState('');
   const { productos, cargando, recargar } = useProductos(categoriaId, buscar);
   const { categorias } = useCategorias();
-  const { agregar, items, cambiarCantidad } = useCarrito();
+  const { agregar, items } = useCarrito();
 
-  const cantidadEnCarrito = (productoId: number) =>
-  items.find(i => i.producto.id === productoId)?.cantidad ?? 0;
+  const enCarrito = (productoId: number) =>
+    items.some(i => i.producto.id === productoId);
 
-  const renderProducto = ({ item }: { item: Producto }) => {
-  const cantidad = cantidadEnCarrito(item.id);
-
-  return (
-    <TouchableOpacity style={styles.card}>
+  const renderProducto = ({ item }: { item: Producto }) => (
+    <TouchableOpacity style={styles.card} activeOpacity={0.8}>
       {item.imagen_url ? (
         <Image
           source={{ uri: `${API_URL}/archivos/${item.imagen_url}` }}
@@ -46,39 +36,21 @@ export default function CatalogoScreen() {
         <Text style={styles.categoria}>{item.categoria?.nombre}</Text>
         <View style={styles.cardFooter}>
           <Text style={styles.precio}>${Number(item.precio).toFixed(2)}</Text>
-          {cantidad > 0 ? (
-            <View style={styles.contador}>
-              <TouchableOpacity
-                style={styles.contadorBtn}
-                onPress={() => cambiarCantidad(item.id, cantidad - 1)}
-              >
-                <Text style={styles.contadorBtnTexto}>−</Text>
-              </TouchableOpacity>
-              <Text style={styles.contadorNum}>{cantidad}</Text>
-              <TouchableOpacity
-                style={styles.contadorBtn}
-                onPress={() => agregar(item)}
-              >
-                <Text style={styles.contadorBtnTexto}>+</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.btnAgregar}
-              onPress={() => agregar(item)}
-            >
-              <Text style={styles.btnAgregarTexto}>Agregar</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={[styles.btnAgregar, enCarrito(item.id) && styles.btnAgregado]}
+            onPress={() => agregar(item)}
+          >
+            <Text style={styles.btnAgregarTexto}>
+              {enCarrito(item.id) ? '✓ Agregado' : 'Agregar'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
   );
-  };
 
   return (
     <View style={styles.container}>
-      {/* Buscador */}
       <View style={styles.header}>
         <TextInput
           style={styles.buscador}
@@ -88,8 +60,6 @@ export default function CatalogoScreen() {
           onChangeText={setBuscar}
         />
       </View>
-
-      {/* Filtro de categorías */}
       <View style={styles.categorias}>
         <TouchableOpacity
           style={[styles.chip, !categoriaId && styles.chipActivo]}
@@ -111,8 +81,6 @@ export default function CatalogoScreen() {
           </TouchableOpacity>
         ))}
       </View>
-
-      {/* Lista de productos */}
       {cargando ? (
         <ActivityIndicator size="large" color="#16a34a" style={styles.loader} />
       ) : (
@@ -153,12 +121,7 @@ const styles = StyleSheet.create({
     gap: 8,
     flexWrap: 'wrap',
   },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: '#e5e7eb',
-  },
+  chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: '#e5e7eb' },
   chipActivo: { backgroundColor: '#16a34a' },
   chipTexto: { fontSize: 13, color: '#374151' },
   chipTextoActivo: { color: '#ffffff', fontWeight: '600' },
@@ -172,36 +135,16 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   imagen: { width: 100, height: 100 },
-  sinImagen: {
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  sinImagen: { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' },
   sinImagenTexto: { fontSize: 12, color: '#9ca3af' },
   cardInfo: { flex: 1, padding: 12, justifyContent: 'space-between' },
   nombre: { fontSize: 15, fontWeight: '600', color: '#111827' },
   categoria: { fontSize: 12, color: '#6b7280', marginTop: 2 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
   precio: { fontSize: 16, fontWeight: 'bold', color: '#16a34a' },
-  stock: { fontSize: 12, color: '#6b7280' },
+  btnAgregar: { backgroundColor: '#16a34a', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+  btnAgregado: { backgroundColor: '#6b7280' },
+  btnAgregarTexto: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
   loader: { flex: 1, marginTop: 40 },
   vacio: { textAlign: 'center', color: '#6b7280', marginTop: 40 },
-  btnAgregar: {
-  backgroundColor: '#16a34a',
-  paddingHorizontal: 14,
-  paddingVertical: 6,
-  borderRadius: 20,
-},
-btnAgregarTexto: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
-contador: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-contadorBtn: {
-  backgroundColor: '#16a34a',
-  width: 28,
-  height: 28,
-  borderRadius: 14,
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-contadorBtnTexto: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
-contadorNum: { fontSize: 15, fontWeight: '600', color: '#111827', minWidth: 20, textAlign: 'center' },
 });

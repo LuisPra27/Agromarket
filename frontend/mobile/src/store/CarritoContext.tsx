@@ -35,29 +35,19 @@ export const CarritoProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const cambiarCantidad = (productoId: number, cantidad: number) => {
-    if (cantidad <= 0) {
-      quitar(productoId);
-      return;
-    }
+    if (cantidad <= 0) { quitar(productoId); return; }
     setItems(prev =>
-      prev.map(i =>
-        i.producto.id === productoId ? { ...i, cantidad } : i
-      )
+      prev.map(i => i.producto.id === productoId ? { ...i, cantidad } : i)
     );
   };
 
   const limpiar = () => setItems([]);
 
-  const total = items.reduce(
-    (acc, i) => acc + Number(i.producto.precio) * i.cantidad, 0
-  );
-
+  const total = items.reduce((acc, i) => acc + Number(i.producto.precio) * i.cantidad, 0);
   const cantidadTotal = items.reduce((acc, i) => acc + i.cantidad, 0);
 
   return (
-    <CarritoContext.Provider value={{
-      items, agregar, quitar, cambiarCantidad, limpiar, total, cantidadTotal
-    }}>
+    <CarritoContext.Provider value={{ items, agregar, quitar, cambiarCantidad, limpiar, total, cantidadTotal }}>
       {children}
     </CarritoContext.Provider>
   );

@@ -1,0 +1,1 @@
+@livewire('admin-pedidos-watcher')
