@@ -9,11 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 class ListPedidos extends ListRecords
 {
     protected static string $resource = PedidoResource::class;
-
-    protected function getTablePollingInterval(): ?string
-    {
-        return '10s';
-    }
+    protected ?string $pollingInterval = '5s';
 
     protected function getPendingCount(): int
     {

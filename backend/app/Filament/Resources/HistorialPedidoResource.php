@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Builder;
 
 class HistorialPedidoResource extends Resource
 {
+    protected static ?string $navigationGroup = 'Historial';
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $model = Pedido::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
@@ -85,7 +88,17 @@ class HistorialPedidoResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\Action::make('ver_detalle')
+                    ->label('Ver detalle')
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->modalContent(fn (Pedido $record) => view(
+                        'filament.modals.detalle-pedido',
+                        ['pedido' => $record->load(['cliente', 'repartidor', 'detalles.producto'])]
+                    ))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar'),
+                
             ])
             ->bulkActions([])
             ->defaultSort('updated_at', 'desc');

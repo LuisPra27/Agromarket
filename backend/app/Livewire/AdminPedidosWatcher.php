@@ -10,6 +10,8 @@ class AdminPedidosWatcher extends Component
 {
     public int $lastPendingCount = 0;
 
+    protected $listeners = ['refresh' => '$refresh'];
+
     public function mount(): void
     {
         $this->lastPendingCount = $this->getPendingCount();
@@ -23,14 +25,16 @@ class AdminPedidosWatcher extends Component
             $newOrders = $currentPendingCount - $this->lastPendingCount;
 
             Notification::make()
-                ->title($newOrders === 1 ? 'Llego un nuevo pedido' : "Llegaron {$newOrders} pedidos nuevos")
-                ->body('Revisa Caja / Validacion para gestionar los pendientes.')
+                ->title($newOrders === 1 ? 'Llegó un nuevo pedido' : "Llegaron {$newOrders} pedidos nuevos")
+                ->body('Revisa Caja / Validación para gestionar los pendientes.')
                 ->success()
                 ->send();
+
+            // Forzar refresh del layout completo de Filament (actualiza badges)
+            $this->dispatch('filament:refresh-navigation-items');
         }
 
         $this->lastPendingCount = $currentPendingCount;
-
         $this->dispatch('pedidos-count-updated', count: $currentPendingCount);
     }
 

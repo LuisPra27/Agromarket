@@ -14,8 +14,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+
 class PedidoResource extends Resource
 {
+    protected static ?string $navigationGroup = 'Operaciones del día';
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $model = Pedido::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
@@ -130,7 +134,7 @@ class PedidoResource extends Resource
                         });
                         Notification::make()->title('Pedido aprobado')->success()->send();
                     }),
-                
+
                 Tables\Actions\Action::make('rechazar')
                     ->label('Rechazar')
                     ->icon('heroicon-o-x-circle')
@@ -141,7 +145,16 @@ class PedidoResource extends Resource
                         $record->update(['estado' => 'rechazado']);
                         Notification::make()->title('Pedido rechazado')->warning()->send();
                     }),
-                Tables\Actions\ViewAction::make(),
+                    Tables\Actions\Action::make('ver_detalle')
+                        ->label('Ver detalle')
+                        ->icon('heroicon-o-eye')
+                        ->color('gray')
+                        ->modalContent(fn (Pedido $record) => view(
+                            'filament.modals.detalle-pedido',
+                            ['pedido' => $record->load(['cliente', 'repartidor', 'detalles.producto'])]
+                        ))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Cerrar'),
             ])
             ->bulkActions([
                 //

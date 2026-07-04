@@ -9,7 +9,7 @@ class ListHistorialPedidos extends ListRecords
 {
     protected static string $resource = HistorialPedidoResource::class;
 
-    protected ?string $pollingInterval = '15s';
+    protected ?string $pollingInterval = '5s';
 
     protected function getHeaderActions(): array
     {

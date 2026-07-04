@@ -78,11 +78,6 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 - [x] Columna de imagen mostrando el comprobante de pago directamente en la tabla
 - [x] Acción **"Aprobar"**: dentro de una transacción (`DB::transaction`), valida stock suficiente, decrementa stock de cada producto del detalle, genera `codigo_qr_hash` (UUID) y cambia estado a `preparando`
 - [x] Acción **"Rechazar"**: cambia estado a `rechazado` sin tocar stock
-- [x] Auto-refresh de la tabla de pedidos cada 10 segundos (`poll('10s')` en `PedidoResource`)
-- [x] Título dinámico en la vista de Caja/Validación con conteo de pendientes (ej. `Caja / Validación (3 pendientes)`)
-- [x] Notificación visual automática cuando llegan pedidos nuevos mientras el admin tiene abierta la vista
-- [x] Columna `Productos solicitados` en la tabla (cantidad + nombre por cada ítem del pedido)
-- [x] Badge dinámico en el menú lateral de Filament para `Caja / Validación` con cantidad de pedidos pendientes
 - [x] Probado end-to-end con datos de prueba vía Tinker: aprobación generó QR hash y redujo stock correctamente (verificado directo en PostgreSQL)
 
 > **Nota de diseño:** se removió la opción de "crear" pedido desde el panel admin (`getPages()` sin la ruta `create`) — los pedidos los originan los clientes desde la app móvil (Fase 8+), el admin solo aprueba/rechaza los que ya existen.
@@ -128,7 +123,7 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 
 > **IP local para desarrollo:** el celular se conecta al backend usando `http://192.168.100.13:8000` (IP WiFi local de la PC de desarrollo). Si la red cambia, actualizar `API_URL` en `src/services/api.ts`.
 
-### Fase 8. Construcción de la API REST 🚧 EN PROGRESO
+### Fase 8. Construcción de la API REST ✅ COMPLETA
 - [x] Registrar `routes/api.php` en `bootstrap/app.php` (Laravel 11+ no lo carga automáticamente)
 - [x] Migración `add_expo_push_token_to_usuarios_table`
 - [x] Modelo `Usuario` extendido como `Authenticatable` + `HasApiTokens` + cast `hashed` en `clave` + `$authPasswordName = 'clave'`
@@ -136,13 +131,11 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 - [x] `AuthController` con endpoints: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `POST /api/auth/push-token`
 - [x] Login probado desde PowerShell y desde app móvil — devuelve token Sanctum + datos de usuario
 - [x] Pantalla `LoginScreen` real conectada al backend — redirige automáticamente a tabs tras login exitoso
-- [x] Endpoint catálogo (`GET /api/productos`)
-- [x] Endpoint categorías (`GET /api/categorias`)
-- [x] Endpoint checkout (`POST /api/pedidos`, carrito + subida de comprobante)
-- [x] Endpoint `GET /api/pedidos` (mis pedidos del cliente)
-- [x] Endpoint `GET /api/pedidos/{id}` (detalle de pedido del cliente autenticado)
+- [ ] Endpoint catálogo (`GET /api/productos`)
+- [ ] Endpoint checkout (carrito + subida de comprobante)
 - [ ] Endpoint `POST /api/orders/{id}/complete` (escaneo QR)
 - [ ] Endpoint `POST /api/orders/{id}/accept` (repartidor acepta viaje)
+- [ ] Endpoint `GET /api/pedidos` (mis pedidos del cliente)
 
 ### Fase 9. Conexión Backend ↔ Frontend
 - [ ] Cliente HTTP (Axios) en React Native
@@ -182,7 +175,7 @@ Este proyecto usa Docker **solo para PostgreSQL**; Laravel se ejecuta a través 
 
 ### Ejecutar comandos artisan
 
-Usar siempre el script `backend.ps1`, que ya incluye las variables de entorno del backend:
+Usar siempre el script `backend.ps1`, que ya incluye las variables de entorno y el volumen montado para reflejar cambios de código en tiempo real:
 
 ```powershell
 ./scripts/backend.ps1 migrate
@@ -211,8 +204,6 @@ docker run --rm `
 ./scripts/backend.ps1 stop
 ```
 
-> El backend monta automáticamente `backend/storage/app/public` dentro del contenedor (`/var/www/html/storage/app/public`) para que las imágenes/comprobantes no se pierdan al usar `rebuild-restart`.
-
 ### Cuando se modifica código PHP (Fase 8+)
 
 A partir de la Fase 8 el backend ya no usa volumen montado (se adoptó el patrón del Observatorio ULEAM: código copiado dentro de la imagen para mejor performance). Cualquier cambio en archivos PHP requiere reconstruir la imagen antes de que se refleje:
@@ -227,17 +218,14 @@ A partir de la Fase 8 el backend ya no usa volumen montado (se adoptó el patró
 
 ```powershell
 cd D:\Agromarket
-./scripts/docker.ps1 up          # 1. Levantar Postgres
-./scripts/docker.ps1 status      # 2. Esperar a que diga (healthy)
-./scripts/backend.ps1 start      # 3. Levantar Laravel
-# Abrir http://127.0.0.1:8000/admin
+./scripts/dev.ps1 start          
+# http://127.0.0.1:8000/admin
 ```
 
 ### Rutina diaria — apagar al terminar
 
 ```powershell
-./scripts/backend.ps1 stop
-./scripts/docker.ps1 down
+./scripts/dev.ps1 stop
 ```
 
 > `docker.ps1 down` (sin `-v`) detiene y borra el contenedor de Postgres, pero **no borra el volumen** `agromarket_postgres_data` — los datos persisten. Solo usar `docker-compose down -v` manualmente si se quiere resetear todo desde cero.
@@ -274,3 +262,48 @@ agromarket-fcvt/
 > - `rol = 'cliente'` + `estado_repartidor = 'aprobado'` → tabs: Catálogo, Mis Pedidos, **Modo Repartidor**, Perfil
 > - Cualquier usuario puede postular a repartidor desde su Perfil
 > - El tab "Modo Repartidor" incluye: Tablero de Viajes, Escáner QR, Billetera
+
+### Fase 9. Conexión Backend ↔ Frontend ✅ COMPLETA
+- [x] Servicio Axios (`src/services/api.ts`) con interceptores para token Sanctum automático y manejo global de 401
+- [x] `AuthContext` con login/logout/actualizarUsuario persistido en AsyncStorage
+- [x] IP local configurada (`192.168.100.13:8000`) para conexión celular ↔ backend en misma red WiFi
+- [x] Tokens Sanctum manejados automáticamente en cada request
+
+### Fase 10. App Cliente — pantallas ✅ COMPLETA
+- [x] `LoginScreen` con logo Agromarket ULEAM y colores institucionales (verde/naranja)
+- [x] `CatalogoScreen` con búsqueda, filtro por categoría, imágenes, botón "Agregar"
+- [x] `CarritoScreen` con lista de items, controles +/−, subtotales, total, botones "Ir a pagar" y "Seguir comprando"
+- [x] `CheckoutScreen` con resumen, datos de cuenta bancaria (desde configuraciones), selector Retiro/Delivery, punto de encuentro, subida de comprobante (galería o cámara)
+- [x] `MisPedidosScreen` con lista de pedidos, estados con colores/emojis, navegación a seguimiento
+- [x] `SeguimientoPedidoScreen` con timeline de estados, QR visible cuando aprobado (formato `{pedidoId}:{hash}`), polling cada 10s
+- [x] `PerfilScreen` con datos del usuario, balance, flujo de postulación a repartidor, logout
+- [x] `CarritoContext` global con badge en tab mostrando cantidad total
+- [x] Paleta de colores centralizada en `src/constants/colors.ts` (verde `#1a5c1a` + naranja `#e87722` del logo)
+
+### Fase 11. App Repartidor — pantallas ✅ COMPLETA
+- [x] `TableroPedidosScreen` con polling cada 10s, solo pedidos delivery excluyendo pedidos propios
+- [x] `EscanerQRScreen` con expo-camera, manejo offline-first con AsyncStorage + NetInfo para reintento automático
+- [x] `BilleteraScreen` con balance acumulado e historial de liquidaciones
+- [x] `RepartidorTabsScreen` con header naranja para distinguirlo visualmente del modo cliente
+- [x] Race condition controlado con `lockForUpdate()` en el backend al aceptar viaje
+
+> **Mejoras adicionales al panel admin (fuera del plan original):**
+> - `ProduccionResource`: pedidos en `preparando` con botón "Listo para entrega", polling 15s
+> - `DeliveryResource`: pedidos delivery activos con repartidor asignado y punto de encuentro, polling 10s
+> - `HistorialPedidoResource`: todos los estados con filtros por estado y modalidad
+> - Menú admin organizado en grupos: Operaciones del día | Historial | Usuarios | Inventario | Configuración
+> - `AdminPedidosWatcher` (Livewire): notificación toast cuando llega pedido nuevo
+> - Modal "Ver detalle" personalizado en todas las vistas de pedidos
+
+### Fase 12. Tiempo real (Reverb / Pusher) ⏳ PENDIENTE
+- [ ] Configuración del servidor WebSocket (Laravel Reverb o Pusher)
+- [ ] Broadcasting de eventos al crear pedido de delivery (notificación push a repartidores aprobados)
+- [ ] Integración en `TableroPedidosScreen` para recibir eventos en tiempo real (actualmente usa polling cada 10s como workaround funcional para el MVP)
+- [ ] `expo-notifications` push token registration en el backend
+
+### Pendientes antes de producción
+- [ ] `DatabaseSeeder` con datos críticos (admin, configuraciones) para que `migrate:fresh` deje el sistema funcional
+- [ ] Validación de formato de correo institucional (`@live.uleam.edu.ec`) en la API
+- [ ] Badges del menú admin con actualización automática sin recargar página
+- [ ] Registro de nuevos usuarios desde la app móvil (actualmente solo desde Filament)
+- [ ] Cambiar a patrón sin volumen `-v` en producción (código copiado en imagen)

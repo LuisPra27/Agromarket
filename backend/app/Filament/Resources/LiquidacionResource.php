@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Builder;
 
 class LiquidacionResource extends Resource
 {
+    protected static ?string $navigationGroup = 'Usuarios';
+    protected static ?int $navigationSort = 2;
+
     protected static ?string $model = Usuario::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';

@@ -1,4 +1,4 @@
-<div wire:poll.10s="checkPedidos" class="hidden" aria-hidden="true"></div>
+<div wire:poll.5000ms="checkPedidos"></div>
 
 @once
     <script>

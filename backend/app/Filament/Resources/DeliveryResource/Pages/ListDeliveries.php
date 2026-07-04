@@ -9,7 +9,7 @@ class ListDeliveries extends ListRecords
 {
     protected static string $resource = DeliveryResource::class;
 
-    protected ?string $pollingInterval = '10s';
+    protected ?string $pollingInterval = '5s';
 
     protected function getHeaderActions(): array
     {

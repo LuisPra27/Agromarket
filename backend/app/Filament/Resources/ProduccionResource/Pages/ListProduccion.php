@@ -9,7 +9,7 @@ class ListProduccion extends ListRecords
 {
     protected static string $resource = ProduccionResource::class;
 
-    protected ?string $pollingInterval = '15s';
+    protected ?string $pollingInterval = '5s';
 
     protected function getHeaderActions(): array
     {

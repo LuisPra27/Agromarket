@@ -13,6 +13,9 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ProduccionResource extends Resource
 {
+    protected static ?string $navigationGroup = 'Operaciones del día';
+    protected static ?int $navigationSort = 2;
+
     protected static ?string $model = Pedido::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-fire';
@@ -101,7 +104,17 @@ class ProduccionResource extends Resource
                             ->success()
                             ->send();
                     }),
-            ])
+                Tables\Actions\Action::make('ver_detalle')
+                    ->label('Ver detalle')
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->modalContent(fn (Pedido $record) => view(
+                        'filament.modals.detalle-pedido',
+                        ['pedido' => $record->load(['cliente', 'repartidor', 'detalles.producto'])]
+                    ))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar'),
+                    ])
             ->bulkActions([])
             ->defaultSort('created_at', 'asc');
     }

@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Auth;
 
 class UsuarioResource extends Resource
 {
+    protected static ?string $navigationGroup = 'Usuarios';
+    protected static ?int $navigationSort = 1;
+    
     protected static ?string $model = Usuario::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
