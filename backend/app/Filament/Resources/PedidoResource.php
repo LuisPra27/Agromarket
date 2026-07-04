@@ -112,43 +112,34 @@ class PedidoResource extends Resource
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->modalDescription('Esta acción generará el código QR y reducirá el stock de los productos. ¿Confirmas?')
+                    ->modalDescription('Esta acción generará el código QR y reducirá el stock. ¿Confirmas?')
+                    ->visible(fn (Pedido $record): bool => $record->estado === 'pendiente_validacion')
                     ->action(function (Pedido $record) {
                         DB::transaction(function () use ($record) {
                             foreach ($record->detalles as $detalle) {
                                 $producto = $detalle->producto;
-
                                 if ($producto->stock < $detalle->cantidad) {
                                     throw new \Exception("Stock insuficiente para {$producto->nombre}.");
                                 }
-
                                 $producto->decrement('stock', $detalle->cantidad);
                             }
-
                             $record->update([
                                 'estado' => 'preparando',
                                 'codigo_qr_hash' => (string) Str::uuid(),
                             ]);
                         });
-
-                        Notification::make()
-                            ->title('Pedido aprobado')
-                            ->body('El stock fue actualizado y el código QR fue generado.')
-                            ->success()
-                            ->send();
+                        Notification::make()->title('Pedido aprobado')->success()->send();
                     }),
+                
                 Tables\Actions\Action::make('rechazar')
                     ->label('Rechazar')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
+                    ->visible(fn (Pedido $record): bool => $record->estado === 'pendiente_validacion')
                     ->action(function (Pedido $record) {
                         $record->update(['estado' => 'rechazado']);
-
-                        Notification::make()
-                            ->title('Pedido rechazado')
-                            ->warning()
-                            ->send();
+                        Notification::make()->title('Pedido rechazado')->warning()->send();
                     }),
                 Tables\Actions\ViewAction::make(),
             ])

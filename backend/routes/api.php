@@ -23,6 +23,8 @@ Route::middleware('auth:usuario')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('me', [AuthController::class, 'me']);
         Route::post('push-token', [AuthController::class, 'updatePushToken']);
+        Route::post('postular-repartidor', [AuthController::class, 'postularRepartidor']); 
+        Route::get('repartidor/mis-liquidaciones', [AuthController::class, 'misLiquidaciones']);
     });
 
     // Catálogo
@@ -34,4 +36,10 @@ Route::middleware('auth:usuario')->group(function () {
     Route::get('pedidos', [PedidoController::class, 'index']);
     Route::post('pedidos', [PedidoController::class, 'store']);
     Route::get('pedidos/{pedido}', [PedidoController::class, 'show']);
+
+    // Repartidor
+    Route::get('repartidor/disponibles', [PedidoController::class, 'disponibles']);
+    Route::get('repartidor/mis-viajes', [PedidoController::class, 'misViajes']);
+    Route::post('repartidor/{pedido}/accept', [PedidoController::class, 'accept']);
+    Route::post('repartidor/{pedido}/complete', [PedidoController::class, 'complete']);
 });

@@ -100,4 +100,100 @@ class PedidoController extends Controller
 
         return response()->json($pedido->load(['detalles.producto', 'repartidor']));
     }
+
+    public function complete(Request $request, Pedido $pedido): JsonResponse
+    {
+        $request->validate([
+            'codigo_qr' => 'required|string',
+        ]);
+
+        if ($pedido->repartidor_id !== $request->user()->id) {
+            return response()->json(['message' => 'No eres el repartidor asignado a este pedido.'], 403);
+        }
+
+        if (!in_array($pedido->estado, ['en_camino', 'listo_para_delivery'])) {
+            return response()->json(['message' => 'Este pedido no puede completarse en su estado actual.'], 422);
+        }
+
+        if ($request->codigo_qr !== $pedido->codigo_qr_hash) {
+            return response()->json(['message' => 'Código QR incorrecto.'], 422);
+        }
+
+        DB::transaction(function () use ($pedido, $request) {
+            $pedido->update(['estado' => 'entregado']);
+
+            // Acreditar incentivo al repartidor
+            $incentivo = (float) \App\Models\Configuracion::get('incentivo_repartidor', 0.25);
+
+            $request->user()->increment('balance', $incentivo);
+        });
+
+        return response()->json(['message' => 'Entrega confirmada. ¡Gracias!']);
+    }
+
+    public function disponibles(Request $request): JsonResponse
+    {
+        $pedidos = Pedido::with(['cliente', 'detalles.producto'])
+            ->where('estado', 'listo_para_delivery')
+            ->where('metodo_entrega', 'delivery')
+            ->whereNull('repartidor_id')
+            ->where('cliente_id', '!=', $request->user()->id)
+            ->orderBy('created_at')
+            ->get();
+
+        return response()->json($pedidos);
+    }
+
+    public function misViajes(Request $request): JsonResponse
+    {
+        $pedidos = Pedido::with(['cliente', 'detalles.producto'])
+            ->where('repartidor_id', $request->user()->id)
+            ->whereIn('estado', ['en_camino', 'entregado'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return response()->json($pedidos);
+    }
+    public function accept(Request $request, Pedido $pedido): JsonResponse
+{
+    if ($pedido->metodo_entrega !== 'delivery') {
+        return response()->json(['message' => 'Este pedido es de retiro, no necesita repartidor.'], 422);
+    }
+
+    if ($pedido->estado !== 'listo_para_delivery') {
+        return response()->json(['message' => 'Este pedido no está disponible para aceptar.'], 422);
+    }
+
+    if ($pedido->cliente_id === $request->user()->id) {
+        return response()->json(['message' => 'No puedes aceptar tu propio pedido.'], 422);
+    }
+
+    $actualizado = DB::transaction(function () use ($pedido, $request) {
+        $pedidoFresh = Pedido::where('id', $pedido->id)
+            ->where('estado', 'listo_para_delivery')
+            ->whereNull('repartidor_id')
+            ->lockForUpdate()
+            ->first();
+
+        if (!$pedidoFresh) {
+            return null;
+        }
+
+        $pedidoFresh->update([
+            'repartidor_id' => $request->user()->id,
+            'estado'        => 'en_camino',
+        ]);
+
+        return $pedidoFresh;
+    });
+
+    if (!$actualizado) {
+        return response()->json(['message' => 'Este viaje ya fue aceptado por otro repartidor.'], 409);
+    }
+
+    return response()->json([
+        'message' => 'Viaje aceptado correctamente.',
+        'pedido'  => $actualizado->load(['cliente', 'detalles.producto']),
+    ]);
+}
 }

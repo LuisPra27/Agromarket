@@ -58,4 +58,37 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Token registrado correctamente.']);
     }
+    public function postularRepartidor(Request $request): JsonResponse
+    {
+        $request->validate([
+            'facultad' => 'required|string|max:100',
+        ]);
+
+        $usuario = $request->user();
+
+        if (!in_array($usuario->estado_repartidor, ['no_postulado', 'rechazado'])) {
+            return response()->json([
+                'message' => 'No puedes postular en tu estado actual.',
+            ], 422);
+        }
+
+        $usuario->update([
+            'facultad' => $request->facultad,
+            'estado_repartidor' => 'pendiente',
+        ]);
+
+        return response()->json([
+            'message' => 'Postulación enviada correctamente.',
+            'usuario' => $usuario->fresh(),
+        ]);
+    }
+    public function misLiquidaciones(Request $request): JsonResponse
+    {
+        $liquidaciones = $request->user()
+            ->liquidaciones()
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($liquidaciones);
+    }
 }

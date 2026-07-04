@@ -71,7 +71,7 @@ export default function SeguimientoPedidoScreen() {
           </Text>
           <View style={styles.qrContainer}>
             <QRCode
-              value={pedido.codigo_qr_hash!}
+              value={`${pedido.id}:${pedido.codigo_qr_hash}`}
               size={220}
               color={Colors.verde}
               backgroundColor={Colors.blanco}
