@@ -6,27 +6,42 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "ios": {
-      "supportsTablet": true
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a5c1a"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a5c1a"
       },
-      "predictiveBackGestureEnabled": false
+      "package": "ec.uleam.fcvt.agromarket"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ec.uleam.fcvt.agromarket"
     },
     "plugins": [
       [
         "expo-image-picker",
         {
-          "photosPermission": "Agromarket necesita acceso a tu galeria para subir el comprobante de pago.",
-          "cameraPermission": "Agromarket necesita acceso a tu camara para subir el comprobante de pago."
+          "photosPermission": "Agromarket necesita acceso a tu galería para subir el comprobante de pago.",
+          "cameraPermission": "Agromarket necesita acceso a la cámara para fotografiar el comprobante de pago."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Agromarket necesita acceso a la cámara para escanear el código QR del cliente."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#1a5c1a"
         }
       ]
     ]

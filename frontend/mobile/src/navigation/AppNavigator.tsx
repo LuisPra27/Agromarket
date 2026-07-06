@@ -4,9 +4,11 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../store/AuthContext';
 import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
 import ClienteTabs from './ClienteTabs';
 import CheckoutScreen from '../screens/cliente/CheckoutScreen';
 import SeguimientoPedidoScreen from '../screens/cliente/SeguimientoPedidoScreen';
+import { Colors } from '../constants/colors';
 
 const Stack = createNativeStackNavigator();
 
@@ -16,7 +18,7 @@ export default function AppNavigator() {
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#22c55e" />
+        <ActivityIndicator size="large" color={Colors.verde} />
       </View>
     );
   }
@@ -39,7 +41,19 @@ export default function AppNavigator() {
             />
           </>
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen
+              name="Register"
+              component={RegisterScreen}
+              options={{
+                headerShown: true,
+                title: 'Crear cuenta',
+                headerTintColor: Colors.verde,
+                headerBackTitle: 'Volver',
+              }}
+            />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

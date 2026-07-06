@@ -10,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use App\Events\PedidoListoParaDelivery;
 
 class ProduccionResource extends Resource
 {
@@ -98,9 +99,10 @@ class ProduccionResource extends Resource
                     ->modalDescription('¿El pedido está físicamente preparado y listo para ser retirado o entregado?')
                     ->action(function (Pedido $record) {
                         $record->update(['estado' => 'listo_para_delivery']);
+                        // Disparar evento WebSocket a todos los repartidores
+                        broadcast(new \App\Events\PedidoListoParaDelivery($record))->toOthers();
                         Notification::make()
-                            ->title('Pedido listo')
-                            ->body("Pedido #{$record->id} marcado como listo para entrega.")
+                            ->title('Pedido listo para entrega')
                             ->success()
                             ->send();
                     }),

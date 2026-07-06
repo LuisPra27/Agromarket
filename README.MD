@@ -131,26 +131,41 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 - [x] `AuthController` con endpoints: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `POST /api/auth/push-token`
 - [x] Login probado desde PowerShell y desde app móvil — devuelve token Sanctum + datos de usuario
 - [x] Pantalla `LoginScreen` real conectada al backend — redirige automáticamente a tabs tras login exitoso
-- [ ] Endpoint catálogo (`GET /api/productos`)
-- [ ] Endpoint checkout (carrito + subida de comprobante)
-- [ ] Endpoint `POST /api/orders/{id}/complete` (escaneo QR)
-- [ ] Endpoint `POST /api/orders/{id}/accept` (repartidor acepta viaje)
-- [ ] Endpoint `GET /api/pedidos` (mis pedidos del cliente)
+- [x] Endpoint catálogo (`GET /api/productos`) 
+- [x] Endpoint checkout (carrito + subida de comprobante)
+- [x] Endpoint `POST /api/orders/{id}/complete` (escaneo QR)
+- [x] Endpoint `POST /api/orders/{id}/accept` (repartidor acepta viaje)
+- [x] Endpoint `GET /api/pedidos` (mis pedidos del cliente)
 
-### Fase 9. Conexión Backend ↔ Frontend
-- [ ] Cliente HTTP (Axios) en React Native
-- [ ] Manejo de tokens Sanctum en la app
-- [ ] Pruebas de consumo de los endpoints de la Fase 8
+### Fase 9. Conexión Backend ↔ Frontend ✅ COMPLETA
+- [x] Servicio Axios (`src/services/api.ts`) con interceptores para token Sanctum automático y manejo global de 401
+- [x] `AuthContext` con login/logout/actualizarUsuario persistido en AsyncStorage
+- [x] IP local configurada (`192.168.100.13:8000`) para conexión celular ↔ backend en misma red WiFi
+- [x] Tokens Sanctum manejados automáticamente en cada request
 
-### Fase 10. App Cliente — pantallas
-- [ ] Catálogo, Carrito, Checkout (subida de foto), Seguimiento con QR
+### Fase 10. App Cliente — pantallas ✅ COMPLETA
+- [x] `LoginScreen` con logo Agromarket ULEAM y colores institucionales (verde/naranja)
+- [x] `CatalogoScreen` con búsqueda, filtro por categoría, imágenes, botón "Agregar"
+- [x] `CarritoScreen` con lista de items, controles +/−, subtotales, total, botones "Ir a pagar" y "Seguir comprando"
+- [x] `CheckoutScreen` con resumen, datos de cuenta bancaria (desde configuraciones), selector Retiro/Delivery, punto de encuentro, subida de comprobante (galería o cámara)
+- [x] `MisPedidosScreen` con lista de pedidos, estados con colores/emojis, navegación a seguimiento
+- [x] `SeguimientoPedidoScreen` con timeline de estados, QR visible cuando aprobado (formato `{pedidoId}:{hash}`), polling cada 10s
+- [x] `PerfilScreen` con datos del usuario, balance, flujo de postulación a repartidor, logout
+- [x] `CarritoContext` global con badge en tab mostrando cantidad total
+- [x] Paleta de colores centralizada en `src/constants/colors.ts` (verde `#1a5c1a` + naranja `#e87722` del logo)
 
-### Fase 11. App Repartidor — pantallas
-- [ ] Tablero de Viajes (WebSockets), Escáner QR, Billetera
+### Fase 11. App Repartidor — pantallas ✅ COMPLETA
+- [x] `TableroPedidosScreen` con polling cada 10s, solo pedidos delivery excluyendo pedidos propios
+- [x] `EscanerQRScreen` con expo-camera, manejo offline-first con AsyncStorage + NetInfo para reintento automático
+- [x] `BilleteraScreen` con balance acumulado e historial de liquidaciones
+- [x] `RepartidorTabsScreen` con header naranja para distinguirlo visualmente del modo cliente
+- [x] Race condition controlado con `lockForUpdate()` en el backend al aceptar viaje
 
-### Fase 12. Tiempo real (Reverb / Pusher)
-- [ ] Configuración del servidor WebSocket
-- [ ] Broadcasting de eventos (pedido listo para delivery)
+### Fase 12. Tiempo real (Reverb / Pusher) ⏳ PENDIENTE
+- [x] Configuración del servidor WebSocket (Laravel Reverb o Pusher)
+- [x] Broadcasting de eventos al crear pedido de delivery (notificación push a repartidores aprobados)
+- [x] Integración en `TableroPedidosScreen` para recibir eventos en tiempo real (actualmente usa polling cada 10s como workaround funcional para el MVP)
+- [x] `expo-notifications` push token registration en el backend
 
 ## Entorno de Desarrollo (Docker)
 
@@ -263,30 +278,6 @@ agromarket-fcvt/
 > - Cualquier usuario puede postular a repartidor desde su Perfil
 > - El tab "Modo Repartidor" incluye: Tablero de Viajes, Escáner QR, Billetera
 
-### Fase 9. Conexión Backend ↔ Frontend ✅ COMPLETA
-- [x] Servicio Axios (`src/services/api.ts`) con interceptores para token Sanctum automático y manejo global de 401
-- [x] `AuthContext` con login/logout/actualizarUsuario persistido en AsyncStorage
-- [x] IP local configurada (`192.168.100.13:8000`) para conexión celular ↔ backend en misma red WiFi
-- [x] Tokens Sanctum manejados automáticamente en cada request
-
-### Fase 10. App Cliente — pantallas ✅ COMPLETA
-- [x] `LoginScreen` con logo Agromarket ULEAM y colores institucionales (verde/naranja)
-- [x] `CatalogoScreen` con búsqueda, filtro por categoría, imágenes, botón "Agregar"
-- [x] `CarritoScreen` con lista de items, controles +/−, subtotales, total, botones "Ir a pagar" y "Seguir comprando"
-- [x] `CheckoutScreen` con resumen, datos de cuenta bancaria (desde configuraciones), selector Retiro/Delivery, punto de encuentro, subida de comprobante (galería o cámara)
-- [x] `MisPedidosScreen` con lista de pedidos, estados con colores/emojis, navegación a seguimiento
-- [x] `SeguimientoPedidoScreen` con timeline de estados, QR visible cuando aprobado (formato `{pedidoId}:{hash}`), polling cada 10s
-- [x] `PerfilScreen` con datos del usuario, balance, flujo de postulación a repartidor, logout
-- [x] `CarritoContext` global con badge en tab mostrando cantidad total
-- [x] Paleta de colores centralizada en `src/constants/colors.ts` (verde `#1a5c1a` + naranja `#e87722` del logo)
-
-### Fase 11. App Repartidor — pantallas ✅ COMPLETA
-- [x] `TableroPedidosScreen` con polling cada 10s, solo pedidos delivery excluyendo pedidos propios
-- [x] `EscanerQRScreen` con expo-camera, manejo offline-first con AsyncStorage + NetInfo para reintento automático
-- [x] `BilleteraScreen` con balance acumulado e historial de liquidaciones
-- [x] `RepartidorTabsScreen` con header naranja para distinguirlo visualmente del modo cliente
-- [x] Race condition controlado con `lockForUpdate()` en el backend al aceptar viaje
-
 > **Mejoras adicionales al panel admin (fuera del plan original):**
 > - `ProduccionResource`: pedidos en `preparando` con botón "Listo para entrega", polling 15s
 > - `DeliveryResource`: pedidos delivery activos con repartidor asignado y punto de encuentro, polling 10s
@@ -295,11 +286,7 @@ agromarket-fcvt/
 > - `AdminPedidosWatcher` (Livewire): notificación toast cuando llega pedido nuevo
 > - Modal "Ver detalle" personalizado en todas las vistas de pedidos
 
-### Fase 12. Tiempo real (Reverb / Pusher) ⏳ PENDIENTE
-- [ ] Configuración del servidor WebSocket (Laravel Reverb o Pusher)
-- [ ] Broadcasting de eventos al crear pedido de delivery (notificación push a repartidores aprobados)
-- [ ] Integración en `TableroPedidosScreen` para recibir eventos en tiempo real (actualmente usa polling cada 10s como workaround funcional para el MVP)
-- [ ] `expo-notifications` push token registration en el backend
+
 
 ### Pendientes antes de producción
 - [ ] `DatabaseSeeder` con datos críticos (admin, configuraciones) para que `migrate:fresh` deje el sistema funcional

@@ -117,6 +117,22 @@ switch ($Command) {
     "routes" {
         Run-Artisan @("route:list", "--path=api")
     }
+    "reverb" {
+        Write-Host "Iniciando servidor WebSocket (Reverb) en puerto 8080..."
+        docker run -d `
+            --name agromarket-reverb `
+            -p 8080:8080 `
+            --add-host=host.docker.internal:host-gateway `
+            --env-file $EnvFile `
+            -e DB_HOST=host.docker.internal `
+            --entrypoint php `
+            $ImageName artisan reverb:start --host=0.0.0.0 --port=8080
+        Write-Host "Reverb corriendo en ws://127.0.0.1:8080"
+    }
+    "reverb-stop" {
+        docker rm -f agromarket-reverb 2>$null | Out-Null
+        Write-Host "Reverb detenido."
+    }
     default {
         Write-Host "Comandos disponibles:"
         Write-Host "  start              - Iniciar backend (artisan serve)"
@@ -132,5 +148,7 @@ switch ($Command) {
         Write-Host "  routes             - Listar rutas API"
         Write-Host "  rebuild            - Reconstruir imagen con código actualizado"
         Write-Host "  rebuild-restart    - Detener, reconstruir e iniciar backend"
+        Write-Host "  reverb             - Iniciar servidor WebSocket"
+        Write-Host "  reverb-stop        - Detener servidor WebSocket"
     }
 }

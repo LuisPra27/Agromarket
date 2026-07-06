@@ -1,5 +1,7 @@
 {
   "dependencies": {
-    "@react-native-community/netinfo": "^12.0.1"
+    "@openspacelabs/react-native-zoomable-view": "^2.4.2",
+    "@react-native-community/netinfo": "^12.0.1",
+    "react-native-image-zoom-viewer": "^3.0.1"
   }
 }

@@ -1,11 +1,11 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import TableroPedidosScreen from './TableroPedidosScreen';
+import ViajeActualScreen from './ViajeActualScreen';
 import EscanerQRScreen from './EscanerQRScreen';
 import BilleteraScreen from './BilleteraScreen';
 import { Colors } from '../../constants/colors';
 import { useAuth } from '../../store/AuthContext';
-import { Text } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 
@@ -27,6 +27,11 @@ export default function RepartidorTabsScreen() {
         name="Viajes"
         component={TableroPedidosScreen}
         options={{ title: 'Viajes disponibles' }}
+      />
+      <Tab.Screen
+        name="ViajeActual"
+        component={ViajeActualScreen}
+        options={{ title: 'Viaje actual', tabBarLabel: 'En curso' }}
       />
       <Tab.Screen
         name="Escanear"

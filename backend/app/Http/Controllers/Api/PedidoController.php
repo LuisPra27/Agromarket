@@ -154,8 +154,24 @@ class PedidoController extends Controller
 
         return response()->json($pedidos);
     }
+
+    public function viajeActual(Request $request): JsonResponse
+    {
+        $pedido = Pedido::with(['cliente', 'detalles.producto'])
+            ->where('repartidor_id', $request->user()->id)
+            ->where('estado', 'en_camino')
+            ->latest('updated_at')
+            ->first();
+
+        if (!$pedido) {
+            return response()->json(null);
+        }
+
+        return response()->json($pedido);
+    }
+ 
     public function accept(Request $request, Pedido $pedido): JsonResponse
-{
+    {
     if ($pedido->metodo_entrega !== 'delivery') {
         return response()->json(['message' => 'Este pedido es de retiro, no necesita repartidor.'], 422);
     }
@@ -195,5 +211,5 @@ class PedidoController extends Controller
         'message' => 'Viaje aceptado correctamente.',
         'pedido'  => $actualizado->load(['cliente', 'detalles.producto']),
     ]);
-}
+    }
 }

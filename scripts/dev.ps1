@@ -33,7 +33,11 @@ switch ($Command) {
         & "$ScriptDir\backend.ps1" start
         Start-Sleep -Seconds 2
         Write-Host "Backend corriendo en http://127.0.0.1:8000" -ForegroundColor Green
-
+        # 2.5. Levantar Reverb (WebSockets)
+        Write-Host "`n[2.5/3] Iniciando servidor WebSocket (Reverb)..." -ForegroundColor Cyan
+        & "$ScriptDir\backend.ps1" reverb
+        Start-Sleep -Seconds 1
+        Write-Host "Reverb corriendo en ws://127.0.0.1:8080" -ForegroundColor Green
         # 3. Levantar Expo
         Write-Host "`n[3/3] Iniciando Expo (React Native)..." -ForegroundColor Cyan
         Write-Host "Abre Expo Go en tu celular y escanea el QR." -ForegroundColor Yellow
@@ -47,6 +51,7 @@ switch ($Command) {
         Set-Location $RootPath
         docker-compose down
         Write-Host "Todo apagado." -ForegroundColor Green
+        & "$ScriptDir\backend.ps1" reverb-stop
     }
 
     default {

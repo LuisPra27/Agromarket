@@ -9,6 +9,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms;
+use Filament\Notifications\Notification;
 
 class DeliveryResource extends Resource
 {
@@ -40,7 +42,7 @@ class DeliveryResource extends Resource
     {
         return parent::getEloquentQuery()
             ->where('metodo_entrega', 'delivery')
-            ->whereIn('estado', ['listo_para_delivery', 'en_camino', 'entregado'])
+            ->whereIn('estado', ['listo_para_delivery', 'en_camino'])
             ->with(['cliente', 'repartidor', 'detalles.producto'])
             ->orderBy('updated_at', 'desc');
     }
@@ -96,6 +98,32 @@ class DeliveryResource extends Resource
                     ]),
             ])
             ->actions([
+                Tables\Actions\Action::make('asignar_repartidor')
+                    ->label('Asignar repartidor')
+                    ->icon('heroicon-o-user-plus')
+                    ->color('warning')
+                    ->visible(fn (Pedido $record): bool => is_null($record->repartidor_id))
+                    ->form([
+                        Forms\Components\Select::make('repartidor_id')
+                            ->label('Repartidor')
+                            ->options(function () {
+                                return \App\Models\Usuario::where('estado_repartidor', 'aprobado')
+                                    ->pluck('nombre_completo', 'id');
+                            })
+                            ->required()
+                            ->searchable(),
+                    ])
+                    ->action(function (Pedido $record, array $data) {
+                        $record->update([
+                            'repartidor_id' => $data['repartidor_id'],
+                            'estado'        => 'en_camino',
+                        ]);
+
+                        Notification::make()
+                            ->title('Repartidor asignado')
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\Action::make('ver_detalle')
                     ->label('Ver detalle')
                     ->icon('heroicon-o-eye')
@@ -106,8 +134,8 @@ class DeliveryResource extends Resource
                     ))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar'),
-                
             ])
+
             ->bulkActions([])
             ->defaultSort('updated_at', 'desc');
     }

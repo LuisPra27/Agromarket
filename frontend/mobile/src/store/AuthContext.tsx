@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Usuario } from '../types';
+import { registrarExpoPushToken } from '../services/pushNotifications';
 
 interface AuthContextType {
   usuario: Usuario | null;
@@ -21,6 +22,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     cargarSesion();
   }, []);
+
+  useEffect(() => {
+    if (!token || !usuario?.id) {
+      return;
+    }
+
+    registrarExpoPushToken(usuario.id);
+  }, [token, usuario?.id]);
 
   const cargarSesion = async () => {
     try {

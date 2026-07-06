@@ -8,12 +8,14 @@ import { useAuth } from '../../store/AuthContext';
 import api from '../../services/api';
 import { AuthResponse } from '../../types';
 import { Colors } from '../../constants/colors';
+import { useNavigation } from '@react-navigation/native';
 
 export default function LoginScreen() {
   const { login } = useAuth();
   const [correo, setCorreo] = useState('');
   const [clave, setClave] = useState('');
   const [cargando, setCargando] = useState(false);
+  const navigation = useNavigation<any>();
 
   const handleLogin = async () => {
     if (!correo || !clave) {
@@ -53,7 +55,7 @@ export default function LoginScreen() {
 
         <TextInput
           style={styles.input}
-          placeholder="e0000000000@live.uleam.edu.ec"
+          placeholder="Correo institucional"
           placeholderTextColor={Colors.grisMedio}
           value={correo}
           onChangeText={setCorreo}
@@ -81,6 +83,14 @@ export default function LoginScreen() {
           ) : (
             <Text style={styles.botonTexto}>Iniciar sesión</Text>
           )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.btnRegistro}
+          onPress={() => navigation.navigate('Register' as never)}
+        >
+          <Text style={styles.btnRegistroTexto}>
+            ¿No tienes cuenta? <Text style={styles.btnRegistroEnfasis}>Regístrate aquí</Text>
+          </Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -124,4 +134,7 @@ const styles = StyleSheet.create({
   },
   botonDeshabilitado: { opacity: 0.6 },
   botonTexto: { color: Colors.blanco, fontSize: 16, fontWeight: '600' },
+  btnRegistro: { alignItems: 'center', paddingVertical: 16 },
+  btnRegistroTexto: { fontSize: 14, color: Colors.grisMedio },
+  btnRegistroEnfasis: { color: Colors.verde, fontWeight: '600' },
 });

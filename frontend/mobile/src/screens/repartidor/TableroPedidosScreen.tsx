@@ -7,13 +7,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 import { Pedido } from '../../types';
 import { Colors } from '../../constants/colors';
+import { subscribeToPedidosRepartidores } from '../../services/realtime';
 
 export default function TableroPedidosScreen() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(true);
   const [aceptando, setAceptando] = useState<number | null>(null);
 
-  const cargar = async () => {
+  const cargar = useCallback(async () => {
     setCargando(true);
     try {
       const r = await api.get<Pedido[]>('/repartidor/disponibles');
@@ -23,13 +24,26 @@ export default function TableroPedidosScreen() {
     } finally {
       setCargando(false);
     }
-  };
+  }, []);
 
   useFocusEffect(useCallback(() => {
+    let pantallaActiva = true;
+
     cargar();
+
+    const limpiarRealtime = subscribeToPedidosRepartidores(() => {
+      if (pantallaActiva) {
+        cargar();
+      }
+    });
+
     const interval = setInterval(cargar, 10000);
-    return () => clearInterval(interval);
-  }, []));
+    return () => {
+      pantallaActiva = false;
+      clearInterval(interval);
+      limpiarRealtime();
+    };
+  }, [cargar]));
 
   const aceptarViaje = async (pedido: Pedido) => {
     Alert.alert(

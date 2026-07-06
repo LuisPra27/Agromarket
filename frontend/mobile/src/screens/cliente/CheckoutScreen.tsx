@@ -9,6 +9,7 @@ import { useAuth } from '../../store/AuthContext';
 import api from '../../services/api';
 import { Colors } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
+import MapaCampus from '../../components/MapaCampus';
 
 type MetodoEntrega = 'retiro' | 'delivery';
 
@@ -22,6 +23,8 @@ export default function CheckoutScreen() {
   const [comprobante, setComprobante] = useState<any>(null);
   const [cargando, setCargando] = useState(false);
   const [cuentas, setCuentas] = useState<Record<string, string>>({});
+  const [pinX, setPinX] = useState<number | null>(null);
+  const [pinY, setPinY] = useState<number | null>(null);
 
   useEffect(() => {
     api.get('/configuraciones/publicas')
@@ -93,7 +96,9 @@ export default function CheckoutScreen() {
 
       if (metodo === 'delivery') {
         formData.append('punto_encuentro', puntoEncuentro);
-      }
+        if (pinX !== null) formData.append('pin_x', pinX.toString());
+        if (pinY !== null) formData.append('pin_y', pinY.toString());
+}
 
       const response = await api.post('/pedidos', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -103,7 +108,21 @@ export default function CheckoutScreen() {
       Alert.alert(
         '¡Pedido enviado!',
         'Tu pedido está en revisión. Te notificaremos cuando sea aprobado.',
-        [{ text: 'Ver mis pedidos', onPress: () => navigation.navigate('Mis Pedidos') }]
+        [
+          {
+            text: 'Ver mis pedidos',
+            onPress: () =>
+              navigation.reset({
+                index: 0,
+                routes: [
+                  {
+                    name: 'Main',
+                    params: { screen: 'Mis Pedidos' },
+                  },
+                ],
+              }),
+          },
+        ]
       );
     } catch (error: any) {
       const mensaje = error.response?.data?.message || 'Error al crear el pedido.';
@@ -158,16 +177,23 @@ export default function CheckoutScreen() {
         </View>
 
         {metodo === 'delivery' && (
+        <View style={styles.deliveryContainer}>
           <TextInput
             style={styles.input}
-            placeholder="¿Dónde te encontramos? Ej: Facultad de Ingeniería, piso 2"
+            placeholder="Describe tu ubicación (ej: Facultad de Ingeniería, piso 2, aula 104)"
             placeholderTextColor={Colors.grisMedio}
             value={puntoEncuentro}
             onChangeText={setPuntoEncuentro}
             multiline
-            numberOfLines={3}
+            numberOfLines={2}
           />
-        )}
+          <MapaCampus
+            pinX={pinX}
+            pinY={pinY}
+            onPinChange={(x, y) => { setPinX(x); setPinY(y); }}
+          />
+        </View>
+      )}
       </View>
 
       {/* Datos para transferencia */}
@@ -350,4 +376,5 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   btnCopiarTexto: { color: Colors.verde, fontSize: 13, fontWeight: '600' },
+  deliveryContainer: { gap: 12 },
 });
