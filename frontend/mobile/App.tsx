@@ -1,4 +1,6 @@
 import React from 'react';
+// IMPORTA SafeAreaProvider AQUÍ
+import { SafeAreaProvider } from 'react-native-safe-area-context'; 
 import { AuthProvider } from './src/store/AuthContext';
 import { CarritoProvider } from './src/store/CarritoContext';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -24,10 +26,13 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <CarritoProvider>
-        <AppContent />
-      </CarritoProvider>
-    </AuthProvider>
+    // ENVUELVE TODA TU APP CON SafeAreaProvider
+    <SafeAreaProvider>
+      <AuthProvider>
+        <CarritoProvider>
+          <AppContent />
+        </CarritoProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

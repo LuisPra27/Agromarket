@@ -17,7 +17,11 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a5c1a"
       },
-      "package": "ec.uleam.fcvt.agromarket"
+      "package": "ec.uleam.fcvt.agromarket",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
+      ]
     },
     "ios": {
       "supportsTablet": true,
@@ -44,6 +48,11 @@
           "color": "#1a5c1a"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7e25326d-835f-41bc-831f-c73a13fd4199"
+      }
+    }
   }
 }

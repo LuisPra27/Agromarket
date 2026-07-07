@@ -1,9 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, Image, TouchableOpacity,
-  Dimensions, Modal,
+  Dimensions, Modal, ScrollView,
 } from 'react-native';
-import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 import { Colors } from '../constants/colors';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -16,44 +15,46 @@ interface Props {
 
 export default function MapaCampus({ pinX, pinY, onPinChange }: Props) {
   const [modalVisible, setModalVisible] = useState(false);
-  const [imageSize, setImageSize] = useState({ width: 1, height: 1 });
-  const containerRef = useRef<View>(null);
+  const [layoutSize, setLayoutSize] = useState({ width: 1, height: 1 });
 
   const handleMapPress = (event: any) => {
     const { locationX, locationY } = event.nativeEvent;
-    const xPct = Math.min(100, Math.max(0, (locationX / imageSize.width) * 100));
-    const yPct = Math.min(100, Math.max(0, (locationY / imageSize.height) * 100));
+    const xPct = Math.min(100, Math.max(0, (locationX / layoutSize.width) * 100));
+    const yPct = Math.min(100, Math.max(0, (locationY / layoutSize.height) * 100));
     onPinChange(Math.round(xPct * 10) / 10, Math.round(yPct * 10) / 10);
   };
-
-  // Calcula el tamaño real de la imagen manteniendo el ratio
-  const mapaWidth = SCREEN_WIDTH;
-  const mapaHeight = SCREEN_HEIGHT * 0.75;
 
   return (
     <View style={styles.container}>
       <Text style={styles.label}>📍 Marca tu ubicación en el mapa</Text>
       <Text style={styles.hint}>Toca el mapa para colocar el pin donde estás</Text>
 
-      {/* Preview pequeño */}
       <TouchableOpacity
         style={styles.mapaPreview}
         onPress={() => setModalVisible(true)}
         activeOpacity={0.9}
       >
-        <Image
-          source={require('../../assets/mapauleam.png')}
-          style={styles.mapaPreviewImg}
-          resizeMode="cover"
-        />
-        {pinX !== null && pinY !== null && (
-          <View style={[styles.pin, {
-            left: `${pinX}%` as any,
-            top: `${pinY}%` as any,
-          }]}>
-            <Text style={styles.pinEmoji}>📍</Text>
-          </View>
-        )}
+        <View
+          style={styles.mapaWrapper}
+          onLayout={e => setLayoutSize({
+            width: e.nativeEvent.layout.width,
+            height: e.nativeEvent.layout.height,
+          })}
+        >
+          <Image
+            source={require('../../assets/mapa-campus.png')}
+            style={styles.mapaPreviewImg}
+            resizeMode="cover"
+          />
+          {pinX !== null && pinY !== null && (
+            <View style={[styles.pin, {
+              left: `${pinX}%` as any,
+              top: `${pinY}%` as any,
+            }]}>
+              <Text style={styles.pinEmoji}>📍</Text>
+            </View>
+          )}
+        </View>
         <View style={styles.previewOverlay}>
           <Text style={styles.previewOverlayTexto}>
             {pinX !== null ? '✏️ Toca para cambiar pin' : '🗺️ Toca para abrir mapa'}
@@ -62,12 +63,9 @@ export default function MapaCampus({ pinX, pinY, onPinChange }: Props) {
       </TouchableOpacity>
 
       {pinX !== null && pinY !== null && (
-        <Text style={styles.pinConfirmado}>
-          ✅ Pin colocado correctamente
-        </Text>
+        <Text style={styles.pinConfirmado}>✅ Pin colocado correctamente</Text>
       )}
 
-      {/* Modal con mapa completo */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -75,7 +73,6 @@ export default function MapaCampus({ pinX, pinY, onPinChange }: Props) {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          {/* Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitulo}>Toca donde estás</Text>
             <TouchableOpacity
@@ -85,33 +82,32 @@ export default function MapaCampus({ pinX, pinY, onPinChange }: Props) {
               <Text style={styles.btnConfirmarTexto}>✓ Confirmar</Text>
             </TouchableOpacity>
           </View>
-
           <Text style={styles.modalHint}>
-            Haz zoom para ver mejor el mapa, luego toca tu ubicación
+            Usa dos dedos para hacer zoom, luego toca tu ubicación
           </Text>
 
-          {/* Mapa con zoom */}
-          <ReactNativeZoomableView
-            maxZoom={4}
-            minZoom={0.5}
-            zoomStep={0.5}
-            initialZoom={1}
-            bindToBorders
-            style={styles.zoomContainer}
+          <ScrollView
+            style={styles.scrollContainer}
+            maximumZoomScale={4}
+            minimumZoomScale={1}
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
           >
             <TouchableOpacity
               activeOpacity={1}
               onPress={handleMapPress}
-              onLayout={(e) => {
-                setImageSize({
-                  width: e.nativeEvent.layout.width,
-                  height: e.nativeEvent.layout.height,
-                });
-              }}
+              onLayout={e => setLayoutSize({
+                width: e.nativeEvent.layout.width,
+                height: e.nativeEvent.layout.height,
+              })}
             >
               <Image
-                source={require('../../assets/mapauleam.png')}
-                style={{ width: mapaWidth, height: mapaHeight }}
+                source={require('../../assets/mapa-campus.png')}
+                style={{
+                  width: SCREEN_WIDTH,
+                  height: SCREEN_HEIGHT * 0.8,
+                }}
                 resizeMode="contain"
               />
               {pinX !== null && pinY !== null && (
@@ -123,15 +119,14 @@ export default function MapaCampus({ pinX, pinY, onPinChange }: Props) {
                 </View>
               )}
             </TouchableOpacity>
-          </ReactNativeZoomableView>
+          </ScrollView>
 
-          {/* Info del pin */}
           <View style={styles.modalFooter}>
-            {pinX !== null && pinY !== null ? (
-              <Text style={styles.pinInfo}>📍 Pin colocado — toca "Confirmar" para continuar</Text>
-            ) : (
-              <Text style={styles.pinInfo}>👆 Toca el mapa para colocar el pin</Text>
-            )}
+            <Text style={styles.pinInfo}>
+              {pinX !== null
+                ? '📍 Pin colocado — toca "Confirmar" para continuar'
+                : '👆 Toca el mapa para colocar el pin'}
+            </Text>
           </View>
         </View>
       </Modal>
@@ -144,13 +139,12 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: Colors.grisOscuro },
   hint: { fontSize: 12, color: Colors.grisMedio },
   mapaPreview: {
-    height: 150,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.grisClaro,
     overflow: 'hidden',
-    position: 'relative',
   },
+  mapaWrapper: { height: 150, position: 'relative' },
   mapaPreviewImg: { width: '100%', height: '100%' },
   pin: {
     position: 'absolute',
@@ -158,10 +152,6 @@ const styles = StyleSheet.create({
   },
   pinEmoji: { fontSize: 24 },
   previewOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: 'rgba(0,0,0,0.5)',
     padding: 8,
     alignItems: 'center',
@@ -192,7 +182,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: Colors.verde,
   },
-  zoomContainer: { flex: 1 },
+  scrollContainer: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
   pinModal: {
     position: 'absolute',
     transform: [{ translateX: -12 }, { translateY: -24 }],

@@ -15,7 +15,8 @@ RUN docker-php-ext-install \
     pgsql \
     zip \
     bcmath \
-    intl
+    intl \
+    pcntl
 
 RUN { \
     echo "upload_max_filesize=20M"; \
