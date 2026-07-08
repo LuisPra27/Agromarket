@@ -1,4 +1,5 @@
 import React from 'react';
+import { TouchableOpacity, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import TableroPedidosScreen from './TableroPedidosScreen';
 import ViajeActualScreen from './ViajeActualScreen';
@@ -14,14 +15,22 @@ export default function RepartidorTabsScreen() {
 
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ navigation }) => ({
         tabBarActiveTintColor: Colors.naranja,
         tabBarInactiveTintColor: Colors.grisMedio,
         headerShown: true,
         headerStyle: { backgroundColor: Colors.naranja },
         headerTintColor: Colors.blanco,
         headerTitleStyle: { fontWeight: 'bold' },
-      }}
+        headerLeft: () => (
+          <TouchableOpacity
+            onPress={() => navigation.getParent()?.goBack()}
+            style={{ paddingHorizontal: 16 }}
+          >
+            <Text style={{ color: Colors.blanco, fontSize: 15, fontWeight: '600' }}>‹ Volver</Text>
+          </TouchableOpacity>
+        ),
+      })}
     >
       <Tab.Screen
         name="Viajes"
