@@ -1,53 +1,38 @@
 import Echo from 'laravel-echo';
-import Pusher from 'pusher-js/react-native';
-import { API_URL } from './api';
 import { PedidoListoParaDeliveryEvent } from '../types';
 
-const globalPusher = globalThis as typeof globalThis & { Pusher?: typeof Pusher };
+// 1. ELIMINAMOS el "import Pusher from 'pusher-js'"
+// 2. Usamos require() para obtener el constructor directamente, sin que Metro lo envuelva en objetos raros.
+const Pusher = require('pusher-js');
 
-if (!globalPusher.Pusher) {
-  globalPusher.Pusher = Pusher;
-}
+const WS_HOST = process.env.EXPO_PUBLIC_WS_HOST ?? '192.168.100.13';
 
-if (typeof window !== 'undefined') {
-  (window as typeof window & { Pusher?: typeof Pusher }).Pusher = Pusher;
-}
+const echo = new Echo({
+  broadcaster: 'reverb',
+  client: Pusher, // <-- 3. Ahora sí, le pasamos la clase constructora real a Echo
+  key: 'agromarket-key',
+  wsHost: WS_HOST,
+  wsPort: 8080,
+  wssPort: 8080,
+  forceTLS: false,
+  enabledTransports: ['ws'],
+});
 
-Pusher.logToConsole = __DEV__;
+export default echo;
 
-let echoInstance: Echo<any> | null = null;
-
-function getEchoInstance() {
-  if (echoInstance) {
-    return echoInstance;
-  }
-
-  const { hostname } = new URL(API_URL);
-
-  echoInstance = new Echo({
-    broadcaster: 'pusher',
-    key: 'agromarket-key',
-    wsHost: hostname,
-    wsPort: 8080,
-    wssPort: 8080,
-    forceTLS: false,
-    enabledTransports: ['ws'],
-    disableStats: true,
-  });
-
-  return echoInstance;
-}
-
+/**
+ * Función para suscribirse al canal de repartidores
+ */
 export function subscribeToPedidosRepartidores(
   onPedidoListo: (pedido: PedidoListoParaDeliveryEvent) => void,
 ) {
-  const echo = getEchoInstance();
   const channel = echo.channel('repartidores');
 
-  channel.listen('.pedido.listo', onPedidoListo);
+  channel.listen('.pedido.listo', (e: PedidoListoParaDeliveryEvent) => {
+    onPedidoListo(e);
+  });
 
   return () => {
     channel.stopListening('.pedido.listo');
-    echo.leaveChannel('repartidores');
   };
 }
