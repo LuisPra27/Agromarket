@@ -8,6 +8,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import ClienteTabs from './ClienteTabs';
 import CheckoutScreen from '../screens/cliente/CheckoutScreen';
 import SeguimientoPedidoScreen from '../screens/cliente/SeguimientoPedidoScreen';
+import RepartidorTabsScreen from '../screens/repartidor/RepartidorTabsScreen';
 import { Colors } from '../constants/colors';
 
 const Stack = createNativeStackNavigator();
@@ -38,6 +39,10 @@ export default function AppNavigator() {
               name="SeguimientoPedido"
               component={SeguimientoPedidoScreen}
               options={{ headerShown: true, title: 'Seguimiento del pedido' }}
+            />
+            <Stack.Screen
+              name="RepartidorTabs"
+              component={RepartidorTabsScreen}
             />
           </>
         ) : (

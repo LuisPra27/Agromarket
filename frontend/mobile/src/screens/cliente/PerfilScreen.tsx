@@ -3,11 +3,13 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   Alert, ScrollView, TextInput, ActivityIndicator,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../store/AuthContext';
 import api from '../../services/api';
 import { Colors } from '../../constants/colors';
 
 export default function PerfilScreen() {
+  const navigation = useNavigation<any>();
   const { usuario, logout, actualizarUsuario } = useAuth();
   const [cargando, setCargando] = useState(false);
   const [facultad, setFacultad] = useState(usuario?.facultad ?? '');
@@ -154,9 +156,17 @@ export default function PerfilScreen() {
         )}
 
         {usuario?.estado_repartidor === 'aprobado' && (
-          <Text style={styles.aprobadoTexto}>
-            Eres repartidor activo. Accede al tab "Repartidor" para ver los viajes disponibles.
-          </Text>
+          <View style={{ gap: 8 }}>
+            <Text style={styles.aprobadoTexto}>
+              Eres repartidor activo. Entra al modo repartidor para ver los viajes disponibles.
+            </Text>
+            <TouchableOpacity
+              style={styles.btnRepartidor}
+              onPress={() => navigation.navigate('RepartidorTabs')}
+            >
+              <Text style={styles.btnRepartidorTexto}>🛵 Ir al modo repartidor</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -231,6 +241,13 @@ const styles = StyleSheet.create({
   btnPostularTexto: { color: Colors.blanco, fontSize: 15, fontWeight: '600' },
   pendienteTexto: { fontSize: 13, color: '#92400e', lineHeight: 18 },
   aprobadoTexto: { fontSize: 13, color: Colors.verde, lineHeight: 18 },
+  btnRepartidor: {
+    backgroundColor: Colors.naranja,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  btnRepartidorTexto: { color: Colors.blanco, fontSize: 15, fontWeight: '600' },
   btnLogout: {
     borderWidth: 2,
     borderColor: '#ef4444',

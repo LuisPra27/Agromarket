@@ -47,7 +47,8 @@
           "icon": "./assets/icon.png",
           "color": "#1a5c1a"
         }
-      ]
+      ],
+      "expo-image"
     ],
     "extra": {
       "eas": {

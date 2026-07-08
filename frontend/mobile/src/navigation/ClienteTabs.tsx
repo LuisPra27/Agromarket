@@ -1,20 +1,16 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useAuth } from '../store/AuthContext';
 import { useCarrito } from '../store/CarritoContext';
 import { Colors } from '../constants/colors';
 import CatalogoScreen from '../screens/cliente/CatalogoScreen';
 import CarritoScreen from '../screens/cliente/CarritoScreen';
 import MisPedidosScreen from '../screens/cliente/MisPedidosScreen';
 import PerfilScreen from '../screens/cliente/PerfilScreen';
-import RepartidorTabsScreen from '../screens/repartidor/RepartidorTabsScreen';
 
 const Tab = createBottomTabNavigator();
 
 export default function ClienteTabs() {
-  const { usuario } = useAuth();
   const { cantidadTotal } = useCarrito();
-  const esRepartidorAprobado = usuario?.estado_repartidor === 'aprobado';
 
   return (
     <Tab.Navigator
@@ -37,9 +33,6 @@ export default function ClienteTabs() {
         }}
       />
       <Tab.Screen name="Mis Pedidos" component={MisPedidosScreen} />
-      {esRepartidorAprobado && (
-        <Tab.Screen name="Repartidor" component={RepartidorTabsScreen} />
-      )}
       <Tab.Screen name="Perfil" component={PerfilScreen} />
     </Tab.Navigator>
   );
