@@ -119,6 +119,8 @@ switch ($Command) {
     }
     "reverb" {
         Write-Host "Iniciando servidor WebSocket (Reverb) en puerto 8080..."
+        docker rm -f agromarket-reverb 2>$null | Out-Null
+        
         docker run -d `
             --name agromarket-reverb `
             -p 8080:8080 `

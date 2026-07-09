@@ -97,15 +97,24 @@ class ProduccionResource extends Resource
                     ->color('success')
                     ->requiresConfirmation()
                     ->modalDescription('¿El pedido está físicamente preparado y listo para ser retirado o entregado?')
+
                     ->action(function (Pedido $record) {
                         $record->update(['estado' => 'listo_para_delivery']);
+
                         // Disparar evento WebSocket a todos los repartidores
-                        broadcast(new \App\Events\PedidoListoParaDelivery($record))->toOthers();
+                        // Si el servidor de WebSockets no está disponible, no debe romper el panel
+                        try {
+                            broadcast(new \App\Events\PedidoListoParaDelivery($record))->toOthers();
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::warning('No se pudo emitir el evento pedido.listo: '.$e->getMessage());
+                        }
+
                         Notification::make()
                             ->title('Pedido listo para entrega')
                             ->success()
                             ->send();
                     }),
+
                 Tables\Actions\Action::make('ver_detalle')
                     ->label('Ver detalle')
                     ->icon('heroicon-o-eye')

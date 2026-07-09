@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.100.13:8000';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.82.24.219:8000';
 
 
 const api = axios.create({

@@ -8,18 +8,21 @@ $FrontendPath = Join-Path $RootPath "frontend\mobile"
 $EnvPath = Join-Path $FrontendPath ".env"
 
 function Get-LocalIP {
+    # 1. Obtenemos solo las interfaces que están físicamente conectadas (Up)
+    $activeInterfaces = Get-NetAdapter | Where-Object { $_.Status -eq "Up" } | Select-Object -ExpandProperty Name
 
-    $ips = Get-NetIPAddress -AddressFamily IPv4 |
+    # 2. Forzamos el resultado a un Array con @(...) para evitar bugs de conteo
+    $ips = @(Get-NetIPAddress -AddressFamily IPv4 |
         Where-Object {
-            $_.IPAddress -notmatch '^172\.' -and
+            $activeInterfaces -contains $_.InterfaceAlias -and
             $_.IPAddress -notmatch '^127\.' -and
             $_.IPAddress -notmatch '^169\.' -and
-            $_.InterfaceAlias -notmatch 'Loopback|vEthernet'
+            $_.InterfaceAlias -notmatch 'Loopback|vEthernet|VirtualBox|VMware|WSL'
         } |
-        Select-Object IPAddress, InterfaceAlias
+        Select-Object IPAddress, InterfaceAlias)
 
-    if (!$ips) {
-        Write-Host "No se encontraron IPs disponibles." -ForegroundColor Red
+    if ($ips.Count -eq 0) {
+        Write-Host "No se encontraron IPs de red local disponibles." -ForegroundColor Red
         return $null
     }
 
@@ -38,19 +41,15 @@ function Get-LocalIP {
 
     try {
         $index = [int]$seleccion - 1
+        if ($index -ge 0 -and $index -lt $ips.Count) {
+            return $ips[$index].IPAddress
+        }
     }
-    catch {
-        return $null
-    }
-
-    if ($index -ge 0 -and $index -lt $ips.Count) {
-        return $ips[$index].IPAddress
-    }
+    catch { }
 
     Write-Host "Seleccion invalida." -ForegroundColor Red
     return $null
 }
-
 function Update-EnvIP {
 
     $ip = Get-LocalIP
@@ -114,8 +113,9 @@ switch ($Command) {
         & "$ScriptDir\backend.ps1" start
 
         Start-Sleep 2
+        & "$ScriptDir\backend.ps1" reverb
 
-        Write-Host "Backend iniciado." -ForegroundColor Green
+        Write-Host "Backend y Reverb iniciado." -ForegroundColor Green
 
         Write-Host ""
         Write-Host "[3/3] Iniciando Expo..." -ForegroundColor Cyan
