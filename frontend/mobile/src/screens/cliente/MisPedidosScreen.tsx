@@ -15,6 +15,7 @@ const ESTADO_CONFIG: Record<string, { label: string; color: string }> = {
   listo_para_delivery: { label: '📦 Listo para delivery', color: '#8b5cf6' },
   en_camino:           { label: '🛵 En camino', color: '#f97316' },
   entregado:           { label: '✅ Entregado', color: '#16a34a' },
+  cancelado:           { label: '🚫 Cancelado', color: '#ef4444' },
 };
 
 export default function MisPedidosScreen() {

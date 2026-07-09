@@ -49,12 +49,14 @@ export interface Pedido {
     | 'preparando'
     | 'listo_para_delivery'
     | 'en_camino'
-    | 'entregado';
+    | 'entregado'
+    | 'cancelado';
   comprobante_pago_url: string | null;
   codigo_qr_hash: string | null;
   punto_encuentro: string | null;
   pin_x: number | null;
   pin_y: number | null;
+  motivo_cancelacion: string | null;
   detalles?: DetallePedido[];
   cliente?: Usuario;
   repartidor?: Usuario | null;

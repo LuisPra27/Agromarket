@@ -24,6 +24,9 @@ export default function ViajeActualScreen() {
       setPedido(r.data);
     } catch (e) {
       console.error(e);
+      // Si la petición falla, no dejamos un pedido viejo/incompleto en
+      // pantalla: es mejor mostrar "sin viaje activo" que datos rotos.
+      setPedido(null);
     } finally {
       setCargando(false);
     }
@@ -39,7 +42,16 @@ export default function ViajeActualScreen() {
     return <ActivityIndicator size="large" color={Colors.verde} style={styles.loader} />;
   }
 
-  if (!pedido) {
+  // Un pedido "en_camino" real siempre debería traer cliente y al menos un
+  // detalle con un total numérico válido. Si algo de eso falta, es un
+  // registro huérfano/inconsistente en la BD: mejor mostrar "sin viaje"
+  // que un detalle con $NaN, cliente vacío, etc.
+  const pedidoValido = pedido
+    && pedido.cliente
+    && Array.isArray(pedido.detalles) && pedido.detalles.length > 0
+    && !Number.isNaN(Number(pedido.total));
+
+  if (!pedidoValido) {
     return (
       <View style={styles.vacio}>
         <Text style={styles.vacioIcono}>🛵</Text>

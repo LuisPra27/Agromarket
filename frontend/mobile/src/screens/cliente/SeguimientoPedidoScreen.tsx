@@ -91,7 +91,18 @@ export default function SeguimientoPedidoScreen() {
         </View>
       )}
 
-      {/* Timeline de estados */}
+      {/* Pedido cancelado */}
+      {pedido.estado === 'cancelado' && (
+        <View style={styles.rechazadoCard}>
+          <Text style={styles.rechazadoTexto}>🚫 Pedido cancelado</Text>
+          <Text style={styles.rechazadoSub}>
+            {pedido.motivo_cancelacion ?? 'El pedido fue cancelado por el administrador.'}
+          </Text>
+        </View>
+      )}
+
+      {/* Timeline de estados (no aplica si el pedido fue rechazado o cancelado) */}
+      {!['rechazado', 'cancelado'].includes(pedido.estado) && (
       <View style={styles.timelineCard}>
         <Text style={styles.sectionTitulo}>Estado del pedido</Text>
         {ESTADOS.map((estado, index) => {
@@ -120,6 +131,7 @@ export default function SeguimientoPedidoScreen() {
           );
         })}
       </View>
+      )}
 
       {/* Detalle de productos */}
       <View style={styles.detalleCard}>

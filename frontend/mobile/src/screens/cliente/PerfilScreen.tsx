@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../store/AuthContext';
-import api from '../../services/api';
+import api, { API_URL } from '../../services/api';
 import { Colors } from '../../constants/colors';
 
 export default function PerfilScreen() {
@@ -175,6 +175,12 @@ export default function PerfilScreen() {
         <Text style={styles.btnLogoutTexto}>Cerrar sesión</Text>
       </TouchableOpacity>
 
+      {/* Indicador de backend: útil para confirmar a qué servidor está
+          apuntando un build release (el .env se empaqueta en el momento
+          de compilar, así que esto puede quedar "congelado" en una IP
+          vieja si no se corrió dev.ps1 set-ip antes de compilar). */}
+      <Text style={styles.backendDebug}>Backend: {API_URL}</Text>
+
     </ScrollView>
   );
 }
@@ -256,4 +262,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnLogoutTexto: { color: '#ef4444', fontSize: 15, fontWeight: '600' },
+  backendDebug: {
+    fontSize: 11,
+    color: Colors.grisMedio,
+    textAlign: 'center',
+    marginTop: 4,
+  },
 });

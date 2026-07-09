@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'punto_encuentro',
     'pin_x',
     'pin_y',
+    'motivo_cancelacion',
 ])]
 class Pedido extends Model
 {

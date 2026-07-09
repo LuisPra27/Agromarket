@@ -32,7 +32,15 @@ export default function BilleteraScreen() {
     }
   };
 
-  useFocusEffect(useCallback(() => { cargar(); }, []));
+  useFocusEffect(useCallback(() => {
+    cargar();
+    // Igual que ViajeActualScreen y TableroPedidosScreen: sin este poll,
+    // si el admin confirma una entrega mientras el repartidor tiene esta
+    // pestaña abierta (sin cambiar de tab), el balance se queda "congelado"
+    // con el valor de cuando se abrió la pantalla.
+    const interval = setInterval(cargar, 15000);
+    return () => clearInterval(interval);
+  }, []));
 
   if (cargando) return <ActivityIndicator size="large" color={Colors.verde} style={styles.loader} />;
 
