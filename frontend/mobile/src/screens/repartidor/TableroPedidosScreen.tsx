@@ -11,14 +11,25 @@ import { subscribeToPedidosRepartidores } from '../../services/realtime';
 
 export default function TableroPedidosScreen() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [viajeActivo, setViajeActivo] = useState<Pedido | null>(null);
   const [cargando, setCargando] = useState(true);
   const [aceptando, setAceptando] = useState<number | null>(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
-      const r = await api.get<Pedido[]>('/repartidor/disponibles');
-      setPedidos(r.data);
+      // Primero verificamos si ya tiene un viaje en curso: si es así, no
+      // tiene sentido mostrarle la lista de disponibles (el backend igual
+      // rechazaría cualquier "Aceptar", pero es mejor prevenir el tap).
+      const viaje = await api.get<Pedido | null>('/repartidor/viaje-actual');
+      setViajeActivo(viaje.data);
+
+      if (viaje.data) {
+        setPedidos([]);
+      } else {
+        const r = await api.get<Pedido[]>('/repartidor/disponibles');
+        setPedidos(r.data);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -111,8 +122,16 @@ export default function TableroPedidosScreen() {
 
   return (
     <View style={styles.container}>
-      {cargando && pedidos.length === 0 ? (
+      {cargando && pedidos.length === 0 && !viajeActivo ? (
         <ActivityIndicator size="large" color={Colors.verde} style={styles.loader} />
+      ) : viajeActivo ? (
+        <View style={styles.vacio}>
+          <Text style={styles.vacioTexto}>🚧</Text>
+          <Text style={styles.vacioTitulo}>Ya tienes un viaje en curso</Text>
+          <Text style={styles.vacioSub}>
+            Completa la entrega del pedido #{viajeActivo.id} en la pestaña "En curso" antes de aceptar otro viaje.
+          </Text>
+        </View>
       ) : (
         <FlatList
           data={pedidos}

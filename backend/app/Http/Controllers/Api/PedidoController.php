@@ -169,7 +169,7 @@ class PedidoController extends Controller
 
         return response()->json($pedido);
     }
- 
+
     public function accept(Request $request, Pedido $pedido): JsonResponse
     {
     if ($pedido->metodo_entrega !== 'delivery') {
@@ -184,6 +184,14 @@ class PedidoController extends Controller
         return response()->json(['message' => 'No puedes aceptar tu propio pedido.'], 422);
     }
 
+    $tieneViajeActivo = Pedido::where('repartidor_id', $request->user()->id)
+        ->where('estado', 'en_camino')
+        ->exists();
+
+    if ($tieneViajeActivo) {
+        return response()->json(['message' => 'Ya tienes un viaje en curso. Complétalo antes de aceptar otro.'], 422);
+    }
+
     $actualizado = DB::transaction(function () use ($pedido, $request) {
         $pedidoFresh = Pedido::where('id', $pedido->id)
             ->where('estado', 'listo_para_delivery')
@@ -192,6 +200,17 @@ class PedidoController extends Controller
             ->first();
 
         if (!$pedidoFresh) {
+            return null;
+        }
+
+        // Doble chequeo dentro de la transacción: evita que dos taps casi
+        // simultáneos del mismo repartidor (o dos pestañas/dispositivos)
+        // le asignen dos viajes a la vez por condición de carrera.
+        $yaTieneActivo = Pedido::where('repartidor_id', $request->user()->id)
+            ->where('estado', 'en_camino')
+            ->exists();
+
+        if ($yaTieneActivo) {
             return null;
         }
 
@@ -204,7 +223,7 @@ class PedidoController extends Controller
     });
 
     if (!$actualizado) {
-        return response()->json(['message' => 'Este viaje ya fue aceptado por otro repartidor.'], 409);
+        return response()->json(['message' => 'Este viaje ya fue aceptado por otro repartidor, o ya tienes uno en curso.'], 409);
     }
 
     return response()->json([

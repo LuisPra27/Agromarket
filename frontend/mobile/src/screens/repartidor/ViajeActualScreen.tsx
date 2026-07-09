@@ -2,11 +2,15 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   ActivityIndicator, RefreshControl, TouchableOpacity, Alert,
+  Dimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 import { Pedido } from '../../types';
 import { Colors } from '../../constants/colors';
+import MapaCampusPreview from '../../components/MapaCampusPreview';
+
+const MAPA_WIDTH = Dimensions.get('window').width - 64; // ancho de pantalla menos padding de la seccion (16*2) y card (16*2)
 
 export default function ViajeActualScreen() {
   const [pedido, setPedido] = useState<Pedido | null>(null);
@@ -78,6 +82,11 @@ export default function ViajeActualScreen() {
         <View style={styles.seccion}>
           <Text style={styles.seccionTitulo}>📍 Punto de encuentro</Text>
           <Text style={styles.datoValor}>{pedido.punto_encuentro}</Text>
+          {pedido.pin_x !== null && pedido.pin_y !== null && (
+            <View style={styles.mapaContainer}>
+              <MapaCampusPreview pinX={pedido.pin_x} pinY={pedido.pin_y} width={MAPA_WIDTH} />
+            </View>
+          )}
         </View>
       )}
 
@@ -150,6 +159,7 @@ const styles = StyleSheet.create({
   },
   seccionTitulo: { fontSize: 13, fontWeight: '700', color: Colors.grisMedio, marginBottom: 4 },
   datoValor: { fontSize: 16, fontWeight: '600', color: Colors.negro },
+  mapaContainer: { marginTop: 8 },
   datoSub: { fontSize: 13, color: Colors.grisMedio },
   productoFila: {
     flexDirection: 'row',
