@@ -12,7 +12,20 @@ if (typeof Pusher !== 'function') {
   );
 }
 
-const WS_HOST = process.env.EXPO_PUBLIC_WS_HOST ?? '192.168.100.13';
+const FALLBACK_WS_HOST = '192.168.100.13';
+
+if (!process.env.EXPO_PUBLIC_WS_HOST) {
+  // Mismo problema que con EXPO_PUBLIC_API_URL: si ves esto en un build
+  // release, el .env no se leyó al empacar el JS. El WebSocket va a
+  // intentar conectarse a una IP vieja y fallar en silencio (la app no
+  // se rompe, simplemente nunca recibe eventos en tiempo real).
+  console.warn(
+    `[realtime] EXPO_PUBLIC_WS_HOST no está definida — usando fallback ${FALLBACK_WS_HOST}. ` +
+    'Si esto es un build release, corre ".\\scripts\\dev.ps1 set-ip" y recompila con gradle clean antes de generar el APK.'
+  );
+}
+
+export const WS_HOST = process.env.EXPO_PUBLIC_WS_HOST ?? FALLBACK_WS_HOST;
 
 const ECHO_OPTIONS = {
   wsHost: WS_HOST,
@@ -42,6 +55,20 @@ const echo = new Echo({
 });
 
 export default echo;
+
+// Logging de estado de conexión: una conexión WS fallida (IP incorrecta,
+// Reverb caído, firewall, etc.) NO lanza ningún error visible en la UI —
+// simplemente el usuario nunca recibe eventos en tiempo real. Estos logs
+// son la única forma de darse cuenta sin instrumentación adicional.
+pusherClient.connection.bind('connected', () => {
+  console.log(`[realtime] ✅ Conectado a Reverb en ${WS_HOST}:8080`);
+});
+pusherClient.connection.bind('error', (err: unknown) => {
+  console.warn(`[realtime] ❌ Error de conexión a Reverb (${WS_HOST}:8080):`, err);
+});
+pusherClient.connection.bind('unavailable', () => {
+  console.warn(`[realtime] ⚠️ Reverb no disponible en ${WS_HOST}:8080 (¿está corriendo el contenedor? ¿IP correcta?)`);
+});
 
 /**
  * Función para suscribirse al canal de repartidores

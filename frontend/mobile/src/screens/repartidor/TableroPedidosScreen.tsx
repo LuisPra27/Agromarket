@@ -22,9 +22,19 @@ export default function TableroPedidosScreen() {
       // tiene sentido mostrarle la lista de disponibles (el backend igual
       // rechazaría cualquier "Aceptar", pero es mejor prevenir el tap).
       const viaje = await api.get<Pedido | null>('/repartidor/viaje-actual');
-      setViajeActivo(viaje.data);
 
-      if (viaje.data) {
+      // Igual que en ViajeActualScreen: un pedido "en_camino" real siempre
+      // trae cliente y un total válido. Si llega incompleto, lo tratamos
+      // como si no hubiera viaje activo en vez de bloquear la pantalla.
+      const viajeValido = viaje.data
+        && viaje.data.cliente
+        && !Number.isNaN(Number(viaje.data.total))
+        ? viaje.data
+        : null;
+
+      setViajeActivo(viajeValido);
+
+      if (viajeValido) {
         setPedidos([]);
       } else {
         const r = await api.get<Pedido[]>('/repartidor/disponibles');
@@ -32,6 +42,7 @@ export default function TableroPedidosScreen() {
       }
     } catch (e) {
       console.error(e);
+      setViajeActivo(null);
     } finally {
       setCargando(false);
     }
