@@ -18,6 +18,7 @@
         "backgroundColor": "#1a5c1a"
       },
       "package": "ec.uleam.fcvt.agromarket",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA"
@@ -60,8 +61,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "7e25326d-835f-41bc-831f-c73a13fd4199"
+        "projectId": "2427bbdd-147b-4f6c-893c-a6d9a94f7f6c"
       }
-    }
+    },
+    "owner": "lugon2702"
   }
 }
