@@ -6,6 +6,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../store/AuthContext';
 import api, { API_URL } from '../../services/api';
+import { WS_HOST } from '../../services/realtime';
 import { Colors } from '../../constants/colors';
 
 export default function PerfilScreen() {
@@ -180,6 +181,7 @@ export default function PerfilScreen() {
           de compilar, así que esto puede quedar "congelado" en una IP
           vieja si no se corrió dev.ps1 set-ip antes de compilar). */}
       <Text style={styles.backendDebug}>Backend: {API_URL}</Text>
+      <Text style={styles.backendDebug}>WebSocket: {WS_HOST}:8080</Text>
 
     </ScrollView>
   );
