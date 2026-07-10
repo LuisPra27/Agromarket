@@ -11,6 +11,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use App\Events\PedidoListoParaDelivery;
+use App\Services\ExpoPushService;
+use App\Models\Usuario;
 
 class ProduccionResource extends Resource
 {
@@ -40,8 +42,7 @@ class ProduccionResource extends Resource
     {
         return parent::getEloquentQuery()
             ->where('estado', 'preparando')
-            ->with(['cliente', 'detalles.producto'])
-            ->orderBy('created_at');
+            ->with(['cliente', 'detalles.producto']);
     }
 
     public static function form(Form $form): Form
@@ -107,6 +108,21 @@ class ProduccionResource extends Resource
                             broadcast(new \App\Events\PedidoListoParaDelivery($record))->toOthers();
                         } catch (\Throwable $e) {
                             \Illuminate\Support\Facades\Log::warning('No se pudo emitir el evento pedido.listo: '.$e->getMessage());
+                        }
+                        
+                        // Notificar por push solo si es delivery (retiro no necesita repartidor)
+                        if ($record->metodo_entrega === 'delivery') {
+                            $tokens = Usuario::where('estado_repartidor', 'aprobado')
+                                ->whereNotNull('expo_push_token')
+                                ->pluck('expo_push_token')
+                                ->toArray();
+
+                            ExpoPushService::enviar(
+                                $tokens,
+                                'Nuevo pedido disponible 🛵',
+                                "Pedido #{$record->numero_orden_cliente} listo para entregar",
+                                ['tipo' => 'nuevo_pedido', 'pedido_id' => $record->id]
+                            );
                         }
 
                         Notification::make()

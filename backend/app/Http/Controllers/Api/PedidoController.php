@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Services\ExpoPushService;
 
 class PedidoController extends Controller
 {
@@ -71,6 +72,7 @@ class PedidoController extends Controller
                 'punto_encuentro'      => $request->punto_encuentro,
                 'pin_x'                => $request->pin_x,
                 'pin_y'                => $request->pin_y,
+                'numero_orden_cliente' => Pedido::where('cliente_id', $request->user()->id)->max('numero_orden_cliente') + 1,
             ]);
 
             // Crear detalles
@@ -119,14 +121,28 @@ class PedidoController extends Controller
             return response()->json(['message' => 'Código QR incorrecto.'], 422);
         }
 
-        DB::transaction(function () use ($pedido, $request) {
+        $incentivo = (float) \App\Models\Configuracion::get('incentivo_repartidor', 0.25);
+
+        DB::transaction(function () use ($pedido, $request, $incentivo) {
             $pedido->update(['estado' => 'entregado']);
-
-            // Acreditar incentivo al repartidor
-            $incentivo = (float) \App\Models\Configuracion::get('incentivo_repartidor', 0.25);
-
             $request->user()->increment('balance', $incentivo);
         });
+
+        $pedido->load(['cliente', 'repartidor']);
+
+        ExpoPushService::enviar(
+            [$pedido->cliente->expo_push_token],
+            'Tu pedido fue entregado ✅',
+            "Pedido #{$pedido->numero_orden_cliente} entregado con éxito. ¡Gracias por tu compra!",
+            ['tipo' => 'pedido_entregado', 'pedido_id' => $pedido->id]
+        );
+
+        ExpoPushService::enviar(
+            [$request->user()->expo_push_token],
+            'Entrega confirmada 💰',
+            "Ganaste \${$incentivo} por el pedido #{$pedido->numero_orden_cliente}.",
+            ['tipo' => 'incentivo_acreditado', 'pedido_id' => $pedido->id]
+        );
 
         return response()->json(['message' => 'Entrega confirmada. ¡Gracias!']);
     }
@@ -225,6 +241,13 @@ class PedidoController extends Controller
     if (!$actualizado) {
         return response()->json(['message' => 'Este viaje ya fue aceptado por otro repartidor, o ya tienes uno en curso.'], 409);
     }
+
+    ExpoPushService::enviar(
+    [$actualizado->cliente->expo_push_token],
+    'Tu pedido va en camino 🛵',
+    "{$request->user()->nombre_completo} está llevando tu pedido #{$actualizado->numero_orden_cliente}.",
+    ['tipo' => 'pedido_en_camino', 'pedido_id' => $actualizado->id]
+    );
 
     return response()->json([
         'message' => 'Viaje aceptado correctamente.',

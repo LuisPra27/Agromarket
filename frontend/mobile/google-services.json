@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "768218415042",
+    "project_id": "agromarket-97d29",
+    "storage_bucket": "agromarket-97d29.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:768218415042:android:3cb8b22950408649dd205b",
+        "android_client_info": {
+          "package_name": "ec.uleam.fcvt.agromarket"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhJE4PZRiC5HlQYPSH-OsUx9sdXE51FNM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

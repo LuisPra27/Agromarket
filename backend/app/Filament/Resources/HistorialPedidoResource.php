@@ -30,8 +30,7 @@ class HistorialPedidoResource extends Resource
     {
         return parent::getEloquentQuery()
             ->whereNotIn('estado', ['pendiente_validacion'])
-            ->with(['cliente', 'repartidor', 'detalles.producto'])
-            ->orderBy('updated_at', 'desc');
+            ->with(['cliente', 'repartidor', 'detalles.producto']);
     }
 
     public static function form(Form $form): Form

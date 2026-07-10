@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'pin_x',
     'pin_y',
     'motivo_cancelacion',
+    'numero_orden_cliente',
 ])]
 class Pedido extends Model
 {

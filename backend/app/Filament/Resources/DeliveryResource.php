@@ -43,8 +43,7 @@ class DeliveryResource extends Resource
         return parent::getEloquentQuery()
             ->where('metodo_entrega', 'delivery')
             ->whereIn('estado', ['listo_para_delivery', 'en_camino'])
-            ->with(['cliente', 'repartidor', 'detalles.producto'])
-            ->orderBy('updated_at', 'desc');
+            ->with(['cliente', 'repartidor', 'detalles.producto']);
     }
 
     public static function form(Form $form): Form

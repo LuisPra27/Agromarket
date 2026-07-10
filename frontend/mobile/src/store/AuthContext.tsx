@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Usuario } from '../types';
-import { registrarExpoPushToken } from '../services/pushNotifications';
+import { registrarExpoPushToken, limpiarExpoPushToken } from '../services/pushNotifications';
+import api from './api';
 
 interface AuthContextType {
   usuario: Usuario | null;
@@ -54,6 +55,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
+    // Limpiar token de push en el backend ANTES de borrar sesión local
+    if (usuario?.id) {
+      await limpiarExpoPushToken(usuario.id);
+    }
     await AsyncStorage.removeItem('auth_token');
     await AsyncStorage.removeItem('auth_usuario');
     setToken(null);

@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\ExpoPushService;
 
 
 class PedidoResource extends Resource
@@ -132,6 +133,13 @@ class PedidoResource extends Resource
                                 'codigo_qr_hash' => (string) Str::uuid(),
                             ]);
                         });
+                        ExpoPushService::enviar(
+                        [$record->cliente->expo_push_token],
+                        'Tu pedido está listo 🎉',
+                        "Pedido #{$record->numero_orden_cliente} aprobado. Ya puedes ver tu código QR en la app.",
+                        ['tipo' => 'pedido_aprobado', 'pedido_id' => $record->id]
+                    );
+
                         Notification::make()->title('Pedido aprobado')->success()->send();
                     }),
 
@@ -158,7 +166,8 @@ class PedidoResource extends Resource
             ])
             ->bulkActions([
                 //
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getPages(): array

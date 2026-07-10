@@ -56,3 +56,15 @@ export async function registrarExpoPushToken(usuarioId: number) {
     console.warn('No se pudo registrar el Expo push token:', error);
   }
 }
+
+export async function limpiarExpoPushToken(usuarioId: number) {
+  try {
+    await api.post('/auth/push-token', {
+      expo_push_token: null,
+    });
+
+    await AsyncStorage.removeItem(storageKeyForUser(usuarioId));
+  } catch (error) {
+    console.warn('No se pudo limpiar el Expo push token:', error);
+  }
+}
