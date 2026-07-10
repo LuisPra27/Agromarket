@@ -44,14 +44,17 @@ class HistorialPedidoResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('# Pedido')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('cliente.nombre_completo')
                     ->label('Cliente')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('metodo_entrega')
                     ->label('Modalidad')
                     ->badge()
-                    ->color(fn (string $state): string => $state === 'delivery' ? 'warning' : 'info'),
+                    ->color(fn (string $state): string => $state === 'delivery' ? 'warning' : 'info')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('estado')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -62,7 +65,8 @@ class HistorialPedidoResource extends Resource
                         'rechazado'           => 'danger',
                         'cancelado'           => 'danger',
                         default               => 'gray',
-                    }),
+                    })
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('motivo_cancelacion')
                     ->label('Motivo de cancelación')
                     ->limit(40)
@@ -70,14 +74,17 @@ class HistorialPedidoResource extends Resource
                     ->placeholder('—'),
                 Tables\Columns\TextColumn::make('total')
                     ->money('USD')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('repartidor.nombre_completo')
                     ->label('Repartidor')
-                    ->placeholder('Sin asignar'),
+                    ->placeholder('Sin asignar')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label('Última actualización')
                     ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('estado')
@@ -187,6 +194,7 @@ class HistorialPedidoResource extends Resource
                     ->modalCancelActionLabel('Cerrar'),
 
             ])
+            ->recordAction('ver_detalle')
             ->bulkActions([])
             ->defaultSort('updated_at', 'desc');
     }
