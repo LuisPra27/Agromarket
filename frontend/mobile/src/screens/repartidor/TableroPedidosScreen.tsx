@@ -23,6 +23,10 @@ export default function TableroPedidosScreen() {
       // rechazaría cualquier "Aceptar", pero es mejor prevenir el tap).
       const viaje = await api.get<Pedido | null>('/repartidor/viaje-actual');
 
+      // TEMPORAL: para diagnosticar por qué a veces llega un viaje activo
+      // que no existe en la BD. Quitar una vez resuelto.
+      console.log('[DEBUG viaje-actual] status:', viaje.status, '| data:', JSON.stringify(viaje.data));
+
       // Igual que en ViajeActualScreen: un pedido "en_camino" real siempre
       // trae cliente y un total válido. Si llega incompleto, lo tratamos
       // como si no hubiera viaje activo en vez de bloquear la pantalla.
@@ -40,8 +44,8 @@ export default function TableroPedidosScreen() {
         const r = await api.get<Pedido[]>('/repartidor/disponibles');
         setPedidos(r.data);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error('[DEBUG viaje-actual] ERROR:', e?.message, '| response:', JSON.stringify(e?.response?.data));
       setViajeActivo(null);
     } finally {
       setCargando(false);

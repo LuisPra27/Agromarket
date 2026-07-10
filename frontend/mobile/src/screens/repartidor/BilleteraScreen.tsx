@@ -19,12 +19,20 @@ export default function BilleteraScreen() {
   const cargar = async () => {
     setCargando(true);
     try {
-      const [meResp, liqResp] = await Promise.all([
-        api.get('/auth/me'),
-        api.get('/repartidor/mis-liquidaciones'),
-      ]);
+      // TEMPORAL: separamos las dos llamadas (antes iban en Promise.all,
+      // que rechaza TODO si una falla) para ver exactamente cuál es la
+      // que está fallando o devolviendo datos vacíos.
+      const meResp = await api.get('/auth/me');
+      console.log('[DEBUG billetera] /auth/me balance:', meResp.data?.balance);
       actualizarUsuario(meResp.data);
-      setLiquidaciones(liqResp.data);
+
+      try {
+        const liqResp = await api.get('/repartidor/mis-liquidaciones');
+        console.log('[DEBUG billetera] /repartidor/mis-liquidaciones:', JSON.stringify(liqResp.data));
+        setLiquidaciones(liqResp.data);
+      } catch (liqError: any) {
+        console.warn('[DEBUG billetera] ERROR en mis-liquidaciones:', liqError?.message, '| response:', JSON.stringify(liqError?.response?.data), '| status:', liqError?.response?.status);
+      }
     } catch (e) {
       console.error(e);
     } finally {

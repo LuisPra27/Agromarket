@@ -71,12 +71,18 @@ class LiquidacionResource extends Resource
                 ->visible(fn (Usuario $record): bool => $record->balance > 0)
                 ->requiresConfirmation()
                 ->modalDescription('Esto reseteará el balance a $0.00, confirmando que ya se realizó el pago al repartidor fuera del sistema. ¿Confirmas?')
-                ->action(function (Usuario $record) {
+                ->form([
+                    Forms\Components\Textarea::make('observaciones')
+                        ->label('Observaciones (opcional)')
+                        ->placeholder('Ej: Transferencia Banco Pichincha #1234'),
+                ])
+                ->action(function (Usuario $record, array $data) {
                     $montoLiquidado = $record->balance;
 
                     \App\Models\Liquidacion::create([
-                        'usuario_id'   => $record->id,
-                        'monto_pagado' => $montoLiquidado,
+                        'usuario_id'    => $record->id,
+                        'monto_pagado'  => $montoLiquidado,
+                        'observaciones' => $data['observaciones'] ?? null,
                     ]);
 
                     $record->update(['balance' => 0]);

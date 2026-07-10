@@ -25,7 +25,6 @@ Route::middleware('auth:usuario')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('push-token', [AuthController::class, 'updatePushToken']);
         Route::post('postular-repartidor', [AuthController::class, 'postularRepartidor']);
-        Route::get('repartidor/mis-liquidaciones', [AuthController::class, 'misLiquidaciones']);
     });
 
     // Catálogo
@@ -44,4 +43,5 @@ Route::middleware('auth:usuario')->group(function () {
     Route::post('repartidor/{pedido}/accept', [PedidoController::class, 'accept']);
     Route::post('repartidor/{pedido}/complete', [PedidoController::class, 'complete']);
     Route::get('repartidor/viaje-actual', [PedidoController::class, 'viajeActual']);
+    Route::get('repartidor/mis-liquidaciones', [AuthController::class, 'misLiquidaciones']);
 });

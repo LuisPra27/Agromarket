@@ -17,7 +17,7 @@ class UsuarioResource extends Resource
 {
     protected static ?string $navigationGroup = 'Usuarios';
     protected static ?int $navigationSort = 1;
-    
+
     protected static ?string $model = Usuario::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
@@ -152,11 +152,22 @@ class UsuarioResource extends Resource
     }
     public static function canEdit(Model $record): bool
     {
-        return $record->rol !== 'administrador';
+        // Siempre se puede editar, incluso registros con rol=administrador:
+        // bloquear la edición fue lo que causó que un cambio de rol por
+        // error (cliente -> administrador) no se pudiera revertir desde
+        // el propio panel.
+        return true;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return $record->rol !== 'administrador';
+        // Solo se bloquea eliminar si es EL ÚLTIMO administrador (evita
+        // quedarse sin ningún admin con acceso al panel). Cualquier otro
+        // registro, incluidos otros admins, se puede eliminar normalmente.
+        if ($record->rol !== 'administrador') {
+            return true;
+        }
+
+        return \App\Models\Usuario::where('rol', 'administrador')->count() > 1;
     }
 }
