@@ -42,8 +42,7 @@ class ProduccionResource extends Resource
     {
         return parent::getEloquentQuery()
             ->where('estado', 'preparando')
-            ->with(['cliente', 'detalles.producto'])
-            ->orderBy('created_at');
+            ->with(['cliente', 'detalles.producto']);
     }
 
     public static function form(Form $form): Form
@@ -121,7 +120,7 @@ class ProduccionResource extends Resource
                             ExpoPushService::enviar(
                                 $tokens,
                                 'Nuevo pedido disponible 🛵',
-                                "Pedido #{$record->id} listo para entregar",
+                                "Pedido #{$record->numero_orden_cliente} listo para entregar",
                                 ['tipo' => 'nuevo_pedido', 'pedido_id' => $record->id]
                             );
                         }

@@ -136,7 +136,7 @@ class PedidoResource extends Resource
                         ExpoPushService::enviar(
                         [$record->cliente->expo_push_token],
                         'Tu pedido está listo 🎉',
-                        "Pedido #{$record->id} aprobado. Ya puedes ver tu código QR en la app.",
+                        "Pedido #{$record->numero_orden_cliente} aprobado. Ya puedes ver tu código QR en la app.",
                         ['tipo' => 'pedido_aprobado', 'pedido_id' => $record->id]
                     );
 
@@ -166,7 +166,8 @@ class PedidoResource extends Resource
             ])
             ->bulkActions([
                 //
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getPages(): array

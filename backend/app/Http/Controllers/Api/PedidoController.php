@@ -72,6 +72,7 @@ class PedidoController extends Controller
                 'punto_encuentro'      => $request->punto_encuentro,
                 'pin_x'                => $request->pin_x,
                 'pin_y'                => $request->pin_y,
+                'numero_orden_cliente' => Pedido::where('cliente_id', $request->user()->id)->max('numero_orden_cliente') + 1,
             ]);
 
             // Crear detalles
@@ -132,14 +133,14 @@ class PedidoController extends Controller
         ExpoPushService::enviar(
             [$pedido->cliente->expo_push_token],
             'Tu pedido fue entregado ✅',
-            "Pedido #{$pedido->id} entregado con éxito. ¡Gracias por tu compra!",
+            "Pedido #{$pedido->numero_orden_cliente} entregado con éxito. ¡Gracias por tu compra!",
             ['tipo' => 'pedido_entregado', 'pedido_id' => $pedido->id]
         );
 
         ExpoPushService::enviar(
             [$request->user()->expo_push_token],
             'Entrega confirmada 💰',
-            "Ganaste \${$incentivo} por el pedido #{$pedido->id}.",
+            "Ganaste \${$incentivo} por el pedido #{$pedido->numero_orden_cliente}.",
             ['tipo' => 'incentivo_acreditado', 'pedido_id' => $pedido->id]
         );
 
@@ -244,7 +245,7 @@ class PedidoController extends Controller
     ExpoPushService::enviar(
     [$actualizado->cliente->expo_push_token],
     'Tu pedido va en camino 🛵',
-    "{$request->user()->nombre_completo} está llevando tu pedido #{$actualizado->id}.",
+    "{$request->user()->nombre_completo} está llevando tu pedido #{$actualizado->numero_orden_cliente}.",
     ['tipo' => 'pedido_en_camino', 'pedido_id' => $actualizado->id]
     );
 
