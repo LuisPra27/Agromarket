@@ -11,6 +11,26 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    // Dominios institucionales permitidos
+    private const DOMINIOS_INSTITUCIONALES = [
+        '@live.uleam.edu.ec',      // Estudiantes
+        '@uleam.edu.ec',           // Profesores / personal
+    ];
+
+    private function validarCorreoInstitucional(string $value, \Closure $fail): void
+    {
+        $permitido = false;
+        foreach (self::DOMINIOS_INSTITUCIONALES as $dominio) {
+            if (str_ends_with($value, $dominio)) {
+                $permitido = true;
+                break;
+            }
+        }
+        if (! $permitido) {
+            $fail('Solo se permiten correos institucionales de la ULEAM (@live.uleam.edu.ec o @uleam.edu.ec).');
+        }
+    }
+
     public function register(Request $request): JsonResponse
     {
         $request->validate([
@@ -20,15 +40,25 @@ class AuthController extends Controller
                 'required',
                 'email',
                 'unique:usuarios,correo',
-                function ($attribute, $value, $fail) {
-                    if (!str_ends_with($value, '@live.uleam.edu.ec')) {
-                        $fail('Solo se permiten correos institucionales (@live.uleam.edu.ec).');
+                function ($attribute, $value, $fail) use ($request) {
+                    $permitido = false;
+                    foreach (['@live.uleam.edu.ec', '@uleam.edu.ec'] as $dominio) {
+                        if (str_ends_with($value, $dominio)) {
+                            $permitido = true;
+                            break;
+                        }
                     }
-                    // Verificar que el correo coincida con la cédula
-                    $cedula = request('cedula');
-                    $correoEsperado = "e{$cedula}@live.uleam.edu.ec";
-                    if ($value !== $correoEsperado) {
-                        $fail("El correo debe ser e{$cedula}@live.uleam.edu.ec.");
+                    if (! $permitido) {
+                        $fail('Solo se permiten correos institucionales de la ULEAM (@live.uleam.edu.ec o @uleam.edu.ec).');
+                        return;
+                    }
+                    // Solo para estudiantes (registro nuevo): el correo debe coincidir con cédula si es @live.uleam.edu.ec
+                    $cedula = $request->input('cedula');
+                    if ($cedula && str_ends_with($value, '@live.uleam.edu.ec')) {
+                        $correoEsperado = "e{$cedula}@live.uleam.edu.ec";
+                        if ($value !== $correoEsperado) {
+                            $fail("El correo debe ser e{$cedula}@live.uleam.edu.ec para estudiantes.");
+                        }
                     }
                 },
             ],
@@ -52,6 +82,7 @@ class AuthController extends Controller
             'usuario' => $usuario,
         ], 201);
     }
+
     public function login(Request $request): JsonResponse
     {
         $request->validate([
@@ -59,8 +90,15 @@ class AuthController extends Controller
                 'required',
                 'email',
                 function ($attribute, $value, $fail) {
-                    if (!str_ends_with($value, '@live.uleam.edu.ec')) {
-                        $fail('Solo se permiten correos institucionales (@live.uleam.edu.ec).');
+                    $permitido = false;
+                    foreach (['@live.uleam.edu.ec', '@uleam.edu.ec'] as $dominio) {
+                        if (str_ends_with($value, $dominio)) {
+                            $permitido = true;
+                            break;
+                        }
+                    }
+                    if (! $permitido) {
+                        $fail('Solo se permiten correos institucionales de la ULEAM (@live.uleam.edu.ec o @uleam.edu.ec).');
                     }
                 },
             ],
@@ -108,6 +146,7 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Token registrado correctamente.']);
     }
+
     public function postularRepartidor(Request $request): JsonResponse
     {
         $request->validate([
@@ -132,6 +171,7 @@ class AuthController extends Controller
             'usuario' => $usuario->fresh(),
         ]);
     }
+
     public function misLiquidaciones(Request $request): JsonResponse
     {
         $liquidaciones = $request->user()
