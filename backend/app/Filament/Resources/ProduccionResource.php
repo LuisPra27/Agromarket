@@ -57,35 +57,6 @@ class ProduccionResource extends Resource
     {
         return $table
             ->columns([
-<<<<<<< Updated upstream
-                Tables\Columns\TextColumn::make('id')
-                    ->label('# Pedido')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('metodo_entrega')
-                    ->label('Modalidad')
-                    ->badge()
-                    ->color(fn (string $state): string => $state === 'delivery' ? 'warning' : 'info'),
-                Tables\Columns\TextColumn::make('cliente.nombre_completo')
-                    ->label('Cliente')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('productos_solicitados')
-                    ->label('Productos')
-                    ->getStateUsing(fn (Pedido $record): array => $record->detalles
-                        ->map(fn ($d): string => "{$d->cantidad}x {$d->producto?->nombre}")
-                        ->all())
-                    ->listWithLineBreaks()
-                    ->bulleted(),
-                Tables\Columns\TextColumn::make('punto_encuentro')
-                    ->label('Punto de entrega')
-                    ->placeholder('Retiro en local')
-                    ->limit(40),
-                Tables\Columns\TextColumn::make('total')
-                    ->money('USD'),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Hora del pedido')
-                    ->dateTime('H:i — d/m/Y')
-                    ->sortable(),
-=======
                 Tables\Columns\TextColumn::make('numero_orden_cliente')
                     ->label('Orden #')
                     ->sortable()
@@ -143,7 +114,6 @@ class ProduccionResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(),
->>>>>>> Stashed changes
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('metodo_entrega')
@@ -180,7 +150,7 @@ class ProduccionResource extends Resource
                         } catch (\Throwable $e) {
                             \Illuminate\Support\Facades\Log::warning('No se pudo emitir el evento pedido.listo: '.$e->getMessage());
                         }
-                        
+
                         // Notificar por push solo si es delivery (retiro no necesita repartidor)
                         if ($record->metodo_entrega === 'delivery') {
                             $tokens = Usuario::where('estado_repartidor', 'aprobado')
@@ -212,7 +182,8 @@ class ProduccionResource extends Resource
                     ))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar'),
-                    ])
+            ])
+            ->recordAction('ver_detalle')
             ->bulkActions([])
             ->defaultSort('created_at', 'asc');
     }
