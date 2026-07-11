@@ -58,7 +58,8 @@ class DeliveryResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('# Pedido')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('estado')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -66,27 +67,34 @@ class DeliveryResource extends Resource
                         'en_camino'           => 'info',
                         'entregado'           => 'success',
                         default               => 'gray',
-                    }),
+                    })
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('cliente.nombre_completo')
                     ->label('Cliente')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('punto_encuentro')
                     ->label('📍 Destino')
                     ->placeholder('No especificado')
-                    ->limit(50),
+                    ->limit(50)
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('repartidor.nombre_completo')
                     ->label('🛵 Repartidor')
                     ->placeholder('Esperando repartidor...')
-                    ->color(fn ($state) => $state ? 'success' : 'gray'),
+                    ->color(fn ($state) => $state ? 'success' : 'gray')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('repartidor.facultad')
                     ->label('Facultad repartidor')
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('total')
-                    ->money('USD'),
+                    ->money('USD')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label('Última actualización')
                     ->dateTime('H:i — d/m/Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('estado')
@@ -134,7 +142,7 @@ class DeliveryResource extends Resource
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar'),
             ])
-
+            ->recordAction('ver_detalle')
             ->bulkActions([])
             ->defaultSort('updated_at', 'desc');
     }

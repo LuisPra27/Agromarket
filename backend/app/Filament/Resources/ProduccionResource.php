@@ -57,61 +57,38 @@ class ProduccionResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('numero_orden_cliente')
-                    ->label('Orden #')
-                    ->sortable()
-                    ->searchable()
-                    ->toggleable(),
-                Tables\Columns\TextColumn::make('cliente.nombre_completo')
-                    ->label('Cliente')
-                    ->sortable()
-                    ->searchable()
-                    ->toggleable(),
-                Tables\Columns\TextColumn::make('total')
-                    ->label('Total')
-                    ->money('USD')
+                Tables\Columns\TextColumn::make('id')
+                    ->label('# Pedido')
                     ->sortable()
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('metodo_entrega')
-                    ->label('Método')
+                    ->label('Modalidad')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'retiro' => '🏪 Retiro',
-                        'delivery' => '🛵 Delivery',
-                        default => $state,
-                    })
-                    ->colors([
-                        'info' => 'retiro',
-                        'success' => 'delivery',
-                    ])
+                    ->color(fn (string $state): string => $state === 'delivery' ? 'warning' : 'info')
                     ->toggleable(),
-                Tables\Columns\TextColumn::make('estado')
-                    ->label('Estado')
-                    ->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'pendiente_validacion' => '⏳ Pendiente validación',
-                        'preparando' => '📦 Preparando',
-                        'listo_para_delivery' => '✅ Listo para delivery',
-                        'en_camino' => '🛵 En camino',
-                        'entregado' => '✅ Entregado',
-                        'cancelado' => '❌ Cancelado',
-                        'rechazado' => '🚫 Rechazado',
-                        default => $state,
-                    })
-                    ->colors([
-                        'warning' => 'pendiente_validacion',
-                        'info' => 'preparando',
-                        'success' => 'listo_para_delivery',
-                        'primary' => 'en_camino',
-                        'success' => 'entregado',
-                        'danger' => 'cancelado',
-                        'danger' => 'rechazado',
-                    ])
-                    ->sortable()
+                Tables\Columns\TextColumn::make('cliente.nombre_completo')
+                    ->label('Cliente')
+                    ->searchable()
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('productos_solicitados')
+                    ->label('Productos')
+                    ->getStateUsing(fn (Pedido $record): array => $record->detalles
+                        ->map(fn ($d): string => "{$d->cantidad}x {$d->producto?->nombre}")
+                        ->all())
+                    ->listWithLineBreaks()
+                    ->bulleted()
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('punto_encuentro')
+                    ->label('Punto de entrega')
+                    ->placeholder('Retiro en local')
+                    ->limit(40)
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('total')
+                    ->money('USD')
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Creado')
-                    ->dateTime('d/m/Y H:i')
+                    ->label('Hora del pedido')
+                    ->dateTime('H:i — d/m/Y')
                     ->sortable()
                     ->toggleable(),
             ])

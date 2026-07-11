@@ -76,10 +76,12 @@ class PedidoResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('# Pedido')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('cliente.nombre_completo')
                     ->label('Cliente')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('productos_solicitados')
                     ->label('Productos solicitados')
                     ->getStateUsing(fn (Pedido $record): array => $record->detalles
@@ -92,20 +94,25 @@ class PedidoResource extends Resource
                         ->all())
                     ->listWithLineBreaks()
                     ->bulleted()
-                    ->searchable(false),
+                    ->searchable(false)
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('total')
                     ->money('USD')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('metodo_entrega')
-                    ->badge(),
+                    ->badge()
+                    ->toggleable(),
                 Tables\Columns\ImageColumn::make('comprobante_pago_url')
                     ->label('Comprobante')
                     ->disk('public')
-                    ->size(80),
+                    ->size(80)
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Fecha')
                     ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 //
@@ -163,6 +170,7 @@ class PedidoResource extends Resource
                         ->modalSubmitAction(false)
                         ->modalCancelActionLabel('Cerrar'),
             ])
+            ->recordAction('ver_detalle')
             ->bulkActions([
                 //
             ])

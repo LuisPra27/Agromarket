@@ -11,7 +11,6 @@ class ConfiguracionSeeder extends Seeder
     {
         $configs = [
             ['clave' => 'incentivo_repartidor', 'valor' => '0.25', 'descripcion' => 'Porcentaje de incentivo para repartidor por entrega'],
-            ['clave' => 'costo_delivery', 'valor' => '1.50', 'descripcion' => 'Costo adicional por delivery (se suma al total del pedido)'],
             ['clave' => 'cuenta_banco', 'valor' => 'Banco Pichincha', 'descripcion' => 'Banco para pagos'],
             ['clave' => 'cuenta_numero', 'valor' => '1234567890', 'descripcion' => 'Número de cuenta'],
             ['clave' => 'cuenta_tipo', 'valor' => 'corriente', 'descripcion' => 'Tipo de cuenta'],
