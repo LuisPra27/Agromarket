@@ -22,6 +22,8 @@ class PedidoResource extends Resource
 
     protected static ?string $model = Pedido::class;
 
+    protected static ?string $slug = 'caja-validacion';
+
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
     protected static ?string $navigationLabel = 'Caja / Validación';

@@ -37,7 +37,7 @@ class DashboardStats extends BaseWidget
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('warning')
                 ->chart([7, 3, 5, 2, 8, 4, 6])
-                ->url(route('filament.admin.resources.pedidos.index')),
+                ->url(route('filament.admin.resources.caja-validacion.index')),
 
             Stat::make('📦 Armando pedidos', $preparando)
                 ->description('Productos siendo reservados/separados')

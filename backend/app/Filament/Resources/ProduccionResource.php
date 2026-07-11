@@ -18,6 +18,8 @@ class ProduccionResource extends Resource
 {
     protected static ?string $model = Pedido::class;
 
+    protected static ?string $slug = 'produccion';
+
     protected static ?string $navigationIcon = 'heroicon-o-cube-transparent';
 
     protected static ?string $navigationLabel = 'Producción';
