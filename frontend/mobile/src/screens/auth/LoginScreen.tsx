@@ -9,11 +9,13 @@ import api from '../../services/api';
 import { AuthResponse } from '../../types';
 import { Colors } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const { login } = useAuth();
   const [correo, setCorreo] = useState('');
   const [clave, setClave] = useState('');
+  const [verClave, setVerClave] = useState(false);
   const [cargando, setCargando] = useState(false);
   const navigation = useNavigation<any>();
 
@@ -64,14 +66,29 @@ export default function LoginScreen() {
           autoCorrect={false}
         />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Contraseña"
-          placeholderTextColor={Colors.grisMedio}
-          value={clave}
-          onChangeText={setClave}
-          secureTextEntry
-        />
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={[styles.input, styles.inputWithIcon]}
+            placeholder="Contraseña"
+            placeholderTextColor={Colors.grisMedio}
+            value={clave}
+            onChangeText={setClave}
+            secureTextEntry={!verClave}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => setVerClave(!verClave)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons
+              name={verClave ? 'eye-off-outline' : 'eye-outline'}
+              size={22}
+              color={Colors.grisMedio}
+            />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={[styles.boton, cargando && styles.botonDeshabilitado]}
@@ -124,6 +141,27 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.negro,
     marginBottom: 16,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.blanco,
+    borderWidth: 1,
+    borderColor: Colors.grisClaro,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  inputWithIcon: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: Colors.negro,
+    marginBottom: 0,
+  },
+  iconBtn: {
+    padding: 12,
+    paddingRight: 16,
   },
   boton: {
     backgroundColor: Colors.verde,

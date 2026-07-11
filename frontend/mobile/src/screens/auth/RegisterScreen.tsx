@@ -8,6 +8,7 @@ import { useAuth } from '../../store/AuthContext';
 import api from '../../services/api';
 import { AuthResponse } from '../../types';
 import { Colors } from '../../constants/colors';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
   const navigation = useNavigation<any>();
@@ -17,6 +18,8 @@ export default function RegisterScreen() {
   const [nombreCompleto, setNombreCompleto] = useState('');
   const [clave, setClave] = useState('');
   const [claveConfirmacion, setClaveConfirmacion] = useState('');
+  const [verClave, setVerClave] = useState(false);
+  const [verClaveConfirmacion, setVerClaveConfirmacion] = useState(false);
   const [cargando, setCargando] = useState(false);
 
   // El correo se auto-genera desde la cédula
@@ -79,7 +82,7 @@ export default function RegisterScreen() {
           <Text style={styles.label}>Cédula de identidad</Text>
           <TextInput
             style={styles.input}
-            placeholder="Número de cedula(sin guión)"
+            placeholder="Número de cédula (sin guión)"
             placeholderTextColor={Colors.grisMedio}
             value={cedula}
             onChangeText={v => setCedula(v.replace(/\D/g, '').slice(0, 10))}
@@ -118,30 +121,58 @@ export default function RegisterScreen() {
         {/* Contraseña */}
         <View style={styles.campo}>
           <Text style={styles.label}>Contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Mínimo 6 caracteres"
-            placeholderTextColor={Colors.grisMedio}
-            value={clave}
-            onChangeText={setClave}
-            secureTextEntry
-          />
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={[styles.input, styles.inputWithIcon]}
+              placeholder="Mínimo 6 caracteres"
+              placeholderTextColor={Colors.grisMedio}
+              value={clave}
+              onChangeText={setClave}
+              secureTextEntry={!verClave}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => setVerClave(!verClave)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons
+                name={verClave ? 'eye-off-outline' : 'eye-outline'}
+                size={22}
+                color={Colors.grisMedio}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Confirmar contraseña */}
         <View style={styles.campo}>
           <Text style={styles.label}>Confirmar contraseña</Text>
-          <TextInput
-            style={[
-              styles.input,
-              claveConfirmacion && clave !== claveConfirmacion && styles.inputError,
-            ]}
-            placeholder="Repite tu contraseña"
-            placeholderTextColor={Colors.grisMedio}
-            value={claveConfirmacion}
-            onChangeText={setClaveConfirmacion}
-            secureTextEntry
-          />
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={[styles.input, styles.inputWithIcon,
+                claveConfirmacion && clave !== claveConfirmacion && styles.inputError]}
+              placeholder="Repite tu contraseña"
+              placeholderTextColor={Colors.grisMedio}
+              value={claveConfirmacion}
+              onChangeText={setClaveConfirmacion}
+              secureTextEntry={!verClaveConfirmacion}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => setVerClaveConfirmacion(!verClaveConfirmacion)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons
+                name={verClaveConfirmacion ? 'eye-off-outline' : 'eye-outline'}
+                size={22}
+                color={Colors.grisMedio}
+              />
+            </TouchableOpacity>
+          </View>
           {claveConfirmacion && clave !== claveConfirmacion && (
             <Text style={styles.errorTexto}>Las contraseñas no coinciden</Text>
           )}
@@ -189,6 +220,25 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 15,
     color: Colors.negro,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.blanco,
+    borderWidth: 1,
+    borderColor: Colors.grisClaro,
+    borderRadius: 12,
+  },
+  inputWithIcon: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: Colors.negro,
+  },
+  iconBtn: {
+    padding: 12,
+    paddingRight: 16,
   },
   inputError: { borderColor: '#ef4444' },
   errorTexto: { fontSize: 12, color: '#ef4444', marginTop: 2 },

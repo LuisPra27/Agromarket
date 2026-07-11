@@ -4,57 +4,60 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProduccionResource\Pages;
 use App\Models\Pedido;
+use App\Models\Usuario;
+use App\Services\ExpoPushService;
+use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use App\Events\PedidoListoParaDelivery;
-use App\Services\ExpoPushService;
-use App\Models\Usuario;
 
 class ProduccionResource extends Resource
 {
-    protected static ?string $navigationGroup = 'Operaciones del día';
-    protected static ?int $navigationSort = 2;
-
     protected static ?string $model = Pedido::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-fire';
+    protected static ?string $navigationIcon = 'heroicon-o-cube-transparent';
 
     protected static ?string $navigationLabel = 'Producción';
 
-    protected static ?string $slug = 'produccion';
+    protected static ?string $navigationGroup = 'Operaciones';
 
-    public static function getNavigationBadge(): ?string
-    {
-        $count = static::getModel()::where('estado', 'preparando')->count();
-        return $count > 0 ? (string) $count : null;
-    }
-
-    public static function getNavigationBadgeColor(): ?string
-    {
-        return 'info';
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->where('estado', 'preparando')
-            ->with(['cliente', 'detalles.producto']);
-    }
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {
-        return $form->schema([]);
+        return $form
+            ->schema([
+                Forms\Components\Select::make('estado')
+                    ->options([
+                        'pendiente_validacion' => 'Pendiente validación',
+                        'preparando' => 'Preparando',
+                        'listo_para_delivery' => 'Listo para delivery',
+                        'en_camino' => 'En camino',
+                        'entregado' => 'Entregado',
+                        'cancelado' => 'Cancelado',
+                        'rechazado' => 'Rechazado',
+                    ])
+                    ->required(),
+                Forms\Components\TextInput::make('total')
+                    ->numeric()
+                    ->prefix('$'),
+                Forms\Components\Select::make('metodo_entrega')
+                    ->options([
+                        'retiro' => '🏪 Retiro',
+                        'delivery' => '🛵 Delivery',
+                    ])
+                    ->required(),
+            ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->poll('15s')
             ->columns([
+<<<<<<< Updated upstream
                 Tables\Columns\TextColumn::make('id')
                     ->label('# Pedido')
                     ->sortable(),
@@ -82,6 +85,65 @@ class ProduccionResource extends Resource
                     ->label('Hora del pedido')
                     ->dateTime('H:i — d/m/Y')
                     ->sortable(),
+=======
+                Tables\Columns\TextColumn::make('numero_orden_cliente')
+                    ->label('Orden #')
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('cliente.nombre_completo')
+                    ->label('Cliente')
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('total')
+                    ->label('Total')
+                    ->money('USD')
+                    ->sortable()
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('metodo_entrega')
+                    ->label('Método')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'retiro' => '🏪 Retiro',
+                        'delivery' => '🛵 Delivery',
+                        default => $state,
+                    })
+                    ->colors([
+                        'info' => 'retiro',
+                        'success' => 'delivery',
+                    ])
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('estado')
+                    ->label('Estado')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'pendiente_validacion' => '⏳ Pendiente validación',
+                        'preparando' => '📦 Preparando',
+                        'listo_para_delivery' => '✅ Listo para delivery',
+                        'en_camino' => '🛵 En camino',
+                        'entregado' => '✅ Entregado',
+                        'cancelado' => '❌ Cancelado',
+                        'rechazado' => '🚫 Rechazado',
+                        default => $state,
+                    })
+                    ->colors([
+                        'warning' => 'pendiente_validacion',
+                        'info' => 'preparando',
+                        'success' => 'listo_para_delivery',
+                        'primary' => 'en_camino',
+                        'success' => 'entregado',
+                        'danger' => 'cancelado',
+                        'danger' => 'rechazado',
+                    ])
+                    ->sortable()
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Creado')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(),
+>>>>>>> Stashed changes
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('metodo_entrega')
@@ -89,6 +151,16 @@ class ProduccionResource extends Resource
                     ->options([
                         'retiro'   => '🏪 Retiro',
                         'delivery' => '🛵 Delivery',
+                    ]),
+                Tables\Filters\SelectFilter::make('estado')
+                    ->options([
+                        'pendiente_validacion' => '⏳ Pendiente validación',
+                        'preparando' => '📦 Preparando',
+                        'listo_para_delivery' => '✅ Listo para delivery',
+                        'en_camino' => '🛵 En camino',
+                        'entregado' => '✅ Entregado',
+                        'cancelado' => '❌ Cancelado',
+                        'rechazado' => '🚫 Rechazado',
                     ]),
             ])
             ->actions([
@@ -103,7 +175,6 @@ class ProduccionResource extends Resource
                         $record->update(['estado' => 'listo_para_delivery']);
 
                         // Disparar evento WebSocket a todos los repartidores
-                        // Si el servidor de WebSockets no está disponible, no debe romper el panel
                         try {
                             broadcast(new \App\Events\PedidoListoParaDelivery($record))->toOthers();
                         } catch (\Throwable $e) {
@@ -120,7 +191,7 @@ class ProduccionResource extends Resource
                             ExpoPushService::enviar(
                                 $tokens,
                                 'Nuevo pedido disponible 🛵',
-                                "Pedido #{$record->numero_orden_cliente} listo para entregar",
+                                'Nuevo pedido listo para entregar',
                                 ['tipo' => 'nuevo_pedido', 'pedido_id' => $record->id]
                             );
                         }
@@ -146,6 +217,11 @@ class ProduccionResource extends Resource
             ->defaultSort('created_at', 'asc');
     }
 
+    public static function getRelations(): array
+    {
+        return [];
+    }
+
     public static function getPages(): array
     {
         return [
@@ -153,8 +229,10 @@ class ProduccionResource extends Resource
         ];
     }
 
-    public static function canCreate(): bool
+    public static function getEloquentQuery(): Builder
     {
-        return false;
+        return parent::getEloquentQuery()
+            ->whereIn('estado', ['pendiente_validacion', 'preparando', 'listo_para_delivery'])
+            ->with(['cliente', 'detalles.producto']);
     }
 }
