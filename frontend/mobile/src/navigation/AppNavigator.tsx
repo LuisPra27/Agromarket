@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
@@ -10,11 +10,29 @@ import CheckoutScreen from '../screens/cliente/CheckoutScreen';
 import SeguimientoPedidoScreen from '../screens/cliente/SeguimientoPedidoScreen';
 import RepartidorTabsScreen from '../screens/repartidor/RepartidorTabsScreen';
 import { Colors } from '../constants/colors';
+import { pushNavigationEmitter } from '../store/AuthContext';
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const { usuario, isLoading } = useAuth();
+  const navigationRef = useRef<any>(null);
+
+  // Listener para navegación desde notificaciones push
+  // IMPORTANTE: este hook debe ir SIEMPRE antes de cualquier return condicional,
+  // si no, React lanza "Rendered more hooks than during the previous render"
+  // en cuanto isLoading pasa de true a false.
+  useEffect(() => {
+    const handlePushNavigation = (event: { pedidoId: number; tipo?: string }) => {
+      const { pedidoId } = event;
+      if (pedidoId) {
+        navigationRef.current?.navigate('SeguimientoPedido', { pedidoId });
+      }
+    };
+
+    const unsubscribe = pushNavigationEmitter.addListener(handlePushNavigation);
+    return () => unsubscribe();
+  }, []);
 
   if (isLoading) {
     return (
@@ -25,7 +43,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {usuario ? (
           <>

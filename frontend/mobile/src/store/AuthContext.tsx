@@ -1,8 +1,30 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import { Usuario } from '../types';
 import { registrarExpoPushToken, limpiarExpoPushToken } from '../services/pushNotifications';
 import api from './api';
+
+// Event emitter simple para React Native
+type PushNavigationEvent = { pedidoId: number; tipo?: string };
+type PushNavigationListener = (event: { pedidoId: number; tipo?: string }) => void;
+
+class PushNavigationEmitter {
+  private listeners: ((event: { pedidoId: number; tipo?: string }) => void)[] = [];
+
+  emit(event: { pedidoId: number; tipo?: string }) {
+    this.listeners.forEach(listener => listener(event));
+  }
+
+  addListener(listener: (event: { pedidoId: number; tipo?: string }) => void) {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== listener);
+    };
+  }
+}
+
+export const pushNavigationEmitter = new PushNavigationEmitter();
 
 interface AuthContextType {
   usuario: Usuario | null;
@@ -32,6 +54,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     registrarExpoPushToken(usuario.id);
   }, [token, usuario?.id]);
 
+  // Listener para notificaciones push - navegar a seguimiento del pedido
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data as Record<string, unknown> | undefined;
+      if (data?.pedido_id) {
+        // Emitir evento para que AppNavigator navegue
+        pushNavigationEmitter.emit({
+          pedidoId: Number(data.pedido_id),
+          tipo: typeof data.tipo === 'string' ? data.tipo : undefined,
+        });
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   const cargarSesion = async () => {
     try {
       const tokenGuardado = await AsyncStorage.getItem('auth_token');
@@ -55,7 +93,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    // Limpiar token de push en el backend ANTES de borrar sesión local
     if (usuario?.id) {
       await limpiarExpoPushToken(usuario.id);
     }

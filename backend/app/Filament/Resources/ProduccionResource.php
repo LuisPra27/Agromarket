@@ -22,7 +22,7 @@ class ProduccionResource extends Resource
 
     protected static ?string $navigationLabel = 'Producción';
 
-    protected static ?string $navigationGroup = 'Operaciones';
+    protected static ?string $navigationGroup = 'Operaciones del día';
 
     protected static ?int $navigationSort = 2;
 
