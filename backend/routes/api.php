@@ -8,7 +8,14 @@ use Illuminate\Support\Facades\Route;
 
 // Rutas públicas
 Route::get('configuraciones/publicas', function () {
-    $claves = ['cuenta_banco', 'cuenta_numero', 'cuenta_tipo', 'cuenta_titular', 'cuenta_cedula'];
+    $claves = [
+        'cuenta_banco', 
+        'cuenta_numero', 
+        'cuenta_tipo', 
+        'cuenta_titular', 
+        'cuenta_cedula',
+        'costo_delivery',
+    ];
     $configs = \App\Models\Configuracion::whereIn('clave', $claves)->get()
         ->pluck('valor', 'clave');
     return response()->json($configs);

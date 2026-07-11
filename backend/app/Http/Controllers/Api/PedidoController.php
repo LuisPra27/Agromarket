@@ -62,6 +62,12 @@ class PedidoController extends Controller
                 ];
             }
 
+            // Agregar costo de delivery si aplica
+            if ($request->metodo_entrega === 'delivery') {
+                $costoDelivery = (float) \App\Models\Configuracion::get('costo_delivery', 1.50);
+                $total += $costoDelivery;
+            }
+
             // Crear pedido
             $pedido = Pedido::create([
                 'cliente_id'           => $request->user()->id,
@@ -133,14 +139,14 @@ class PedidoController extends Controller
         ExpoPushService::enviar(
             [$pedido->cliente->expo_push_token],
             'Tu pedido fue entregado ✅',
-            "Pedido #{$pedido->numero_orden_cliente} entregado con éxito. ¡Gracias por tu compra!",
+            "Pedido entregado con éxito. ¡Gracias por tu compra!",
             ['tipo' => 'pedido_entregado', 'pedido_id' => $pedido->id]
         );
 
         ExpoPushService::enviar(
             [$request->user()->expo_push_token],
             'Entrega confirmada 💰',
-            "Ganaste \${$incentivo} por el pedido #{$pedido->numero_orden_cliente}.",
+            "Ganaste \${$incentivo} por la entrega.",
             ['tipo' => 'incentivo_acreditado', 'pedido_id' => $pedido->id]
         );
 
@@ -245,7 +251,7 @@ class PedidoController extends Controller
     ExpoPushService::enviar(
     [$actualizado->cliente->expo_push_token],
     'Tu pedido va en camino 🛵',
-    "{$request->user()->nombre_completo} está llevando tu pedido #{$actualizado->numero_orden_cliente}.",
+    "{$request->user()->nombre_completo} está llevando tu pedido.",
     ['tipo' => 'pedido_en_camino', 'pedido_id' => $actualizado->id]
     );
 

@@ -23,14 +23,22 @@ export default function CheckoutScreen() {
   const [comprobante, setComprobante] = useState<any>(null);
   const [cargando, setCargando] = useState(false);
   const [cuentas, setCuentas] = useState<Record<string, string>>({});
+  const [costoDelivery, setCostoDelivery] = useState<number>(0);
   const [pinX, setPinX] = useState<number | null>(null);
   const [pinY, setPinY] = useState<number | null>(null);
 
   useEffect(() => {
     api.get('/configuraciones/publicas')
-      .then(r => setCuentas(r.data))
+      .then(r => {
+        setCuentas(r.data);
+        if (r.data.costo_delivery) {
+          setCostoDelivery(Number(r.data.costo_delivery));
+        }
+      })
       .catch(() => {});
   }, []);
+
+  const totalConDelivery = metodo === 'delivery' ? total + costoDelivery : total;
 
   const seleccionarComprobante = async () => {
     const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -98,7 +106,7 @@ export default function CheckoutScreen() {
         formData.append('punto_encuentro', puntoEncuentro);
         if (pinX !== null) formData.append('pin_x', pinX.toString());
         if (pinY !== null) formData.append('pin_y', pinY.toString());
-}
+      }
 
       const response = await api.post('/pedidos', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -148,9 +156,25 @@ export default function CheckoutScreen() {
             </Text>
           </View>
         ))}
+        
+        {/* Subtotal */}
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total a pagar:</Text>
+          <Text style={styles.totalLabel}>Subtotal:</Text>
           <Text style={styles.totalMonto}>${total.toFixed(2)}</Text>
+        </View>
+
+        {/* Costo delivery si aplica */}
+        {metodo === 'delivery' && costoDelivery > 0 && (
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Costo delivery:</Text>
+            <Text style={styles.totalMonto}>+ $${costoDelivery.toFixed(2)}</Text>
+          </View>
+        )}
+
+        {/* Total final */}
+        <View style={[styles.totalRow, styles.totalFinal]}>
+          <Text style={styles.totalLabel}>Total a pagar:</Text>
+          <Text style={styles.totalMonto}>${totalConDelivery.toFixed(2)}</Text>
         </View>
       </View>
 
@@ -171,7 +195,7 @@ export default function CheckoutScreen() {
             onPress={() => setMetodo('delivery')}
           >
             <Text style={[styles.metodoBtnTexto, metodo === 'delivery' && styles.metodoBtnTextoActivo]}>
-              🛵 Delivery
+              🛵 Delivery ${costoDelivery > 0 ? `+$${costoDelivery.toFixed(2)}` : ''}
             </Text>
           </TouchableOpacity>
         </View>
@@ -200,7 +224,7 @@ export default function CheckoutScreen() {
       <View style={styles.seccion}>
         <Text style={styles.titulo}>💳 Datos para la transferencia</Text>
         <Text style={styles.subtitulo}>
-          Transfiere exactamente <Text style={styles.montoDestacado}>${total.toFixed(2)}</Text> a esta cuenta:
+          Transfiere exactamente <Text style={styles.montoDestacado}>${totalConDelivery.toFixed(2)}</Text> a esta cuenta:
         </Text>
 
         <View style={styles.cuentaContainer}>
@@ -233,7 +257,7 @@ export default function CheckoutScreen() {
       <View style={styles.seccion}>
         <Text style={styles.titulo}>Comprobante de transferencia</Text>
         <Text style={styles.subtitulo}>
-          Transfiere ${total.toFixed(2)} y sube la captura de pantalla del comprobante.
+          Transfiere ${totalConDelivery.toFixed(2)} y sube la captura de pantalla del comprobante.
         </Text>
 
         {comprobante ? (
@@ -298,6 +322,12 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.grisClaro,
     paddingTop: 8,
     marginTop: 4,
+  },
+  totalFinal: {
+    borderTopWidth: 2,
+    borderTopColor: Colors.negro,
+    marginTop: 8,
+    paddingTop: 12,
   },
   totalLabel: { fontSize: 15, fontWeight: '600', color: Colors.grisOscuro },
   totalMonto: { fontSize: 18, fontWeight: 'bold', color: Colors.verde },
