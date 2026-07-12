@@ -7,28 +7,91 @@ use App\Models\Usuario;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    // Dominios institucionales permitidos
-    private const DOMINIOS_INSTITUCIONALES = [
-        '@live.uleam.edu.ec',      // Estudiantes
-        '@uleam.edu.ec',           // Profesores / personal
-    ];
-
-    private function validarCorreoInstitucional(string $value, \Closure $fail): void
+    // Login/registro con Microsoft (Azure AD / Entra ID).
+    // El móvil hace el flujo OAuth y nos manda el access_token de Microsoft Graph;
+    // nosotros lo validamos consultando /me directamente a Microsoft (así no
+    // tenemos que validar la firma del JWT nosotros mismos).
+    public function microsoft(Request $request): JsonResponse
     {
-        $permitido = false;
-        foreach (self::DOMINIOS_INSTITUCIONALES as $dominio) {
-            if (str_ends_with($value, $dominio)) {
-                $permitido = true;
-                break;
+        $request->validate([
+            'access_token' => 'required|string',
+        ]);
+
+        $graphResponse = Http::withToken($request->access_token)
+            ->get('https://graph.microsoft.com/v1.0/me');
+
+        if ($graphResponse->failed()) {
+            return response()->json([
+                'message' => 'No se pudo validar la cuenta de Microsoft.',
+            ], 401);
+        }
+
+        $perfil = $graphResponse->json();
+        $correo = $perfil['mail'] ?? $perfil['userPrincipalName'] ?? null;
+        $nombre = $perfil['displayName'] ?? 'Usuario ULEAM';
+        $microsoftId = $perfil['id'] ?? null;
+
+        if (! $correo || ! $microsoftId) {
+            return response()->json([
+                'message' => 'La cuenta de Microsoft no tiene correo disponible.',
+            ], 422);
+        }
+
+        $usuario = Usuario::where('microsoft_id', $microsoftId)
+            ->orWhere('correo', $correo)
+            ->first();
+
+        if ($usuario) {
+            // Por si el usuario ya existía (ej. registrado antes por correo/clave)
+            // pero es la primera vez que entra con Microsoft.
+            if (! $usuario->microsoft_id) {
+                $usuario->update(['microsoft_id' => $microsoftId]);
             }
+        } else {
+            $usuario = Usuario::create([
+                'nombre_completo'   => $nombre,
+                'correo'            => $correo,
+                'microsoft_id'      => $microsoftId,
+                'rol'               => 'cliente',
+                'estado_repartidor' => 'no_postulado',
+                'balance'           => 0,
+            ]);
         }
-        if (! $permitido) {
-            $fail('Solo se permiten correos institucionales de la ULEAM (@live.uleam.edu.ec o @uleam.edu.ec).');
-        }
+
+        $token = $usuario->createToken('mobile')->plainTextToken;
+
+        return response()->json([
+            'token'   => $token,
+            'usuario' => $usuario,
+        ]);
+    }
+
+    // Completa la cédula tras el primer login con Microsoft (la BD la sigue
+    // exigiendo para el resto de la lógica de la app: pedidos, liquidaciones, etc.)
+    public function completarPerfil(Request $request): JsonResponse
+    {
+        $usuario = $request->user();
+
+        $request->validate([
+            'cedula' => [
+                'required',
+                'string',
+                'size:10',
+                Rule::unique('usuarios', 'cedula')->ignore($usuario->id),
+            ],
+        ]);
+
+        $usuario->update(['cedula' => $request->cedula]);
+
+        return response()->json([
+            'usuario' => $usuario->fresh(),
+        ]);
     }
 
     public function register(Request $request): JsonResponse
@@ -36,32 +99,7 @@ class AuthController extends Controller
         $request->validate([
             'cedula' => 'required|string|size:10|unique:usuarios,cedula',
             'nombre_completo' => 'required|string|max:100',
-            'correo' => [
-                'required',
-                'email',
-                'unique:usuarios,correo',
-                function ($attribute, $value, $fail) use ($request) {
-                    $permitido = false;
-                    foreach (['@live.uleam.edu.ec', '@uleam.edu.ec'] as $dominio) {
-                        if (str_ends_with($value, $dominio)) {
-                            $permitido = true;
-                            break;
-                        }
-                    }
-                    if (! $permitido) {
-                        $fail('Solo se permiten correos institucionales de la ULEAM (@live.uleam.edu.ec o @uleam.edu.ec).');
-                        return;
-                    }
-                    // Solo para estudiantes (registro nuevo): el correo debe coincidir con cédula si es @live.uleam.edu.ec
-                    $cedula = $request->input('cedula');
-                    if ($cedula && str_ends_with($value, '@live.uleam.edu.ec')) {
-                        $correoEsperado = "e{$cedula}@live.uleam.edu.ec";
-                        if ($value !== $correoEsperado) {
-                            $fail("El correo debe ser e{$cedula}@live.uleam.edu.ec para estudiantes.");
-                        }
-                    }
-                },
-            ],
+            'correo' => 'required|email|unique:usuarios,correo',
             'clave' => 'required|string|min:6|confirmed',
         ]);
 
@@ -86,22 +124,7 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'correo' => [
-                'required',
-                'email',
-                function ($attribute, $value, $fail) {
-                    $permitido = false;
-                    foreach (['@live.uleam.edu.ec', '@uleam.edu.ec'] as $dominio) {
-                        if (str_ends_with($value, $dominio)) {
-                            $permitido = true;
-                            break;
-                        }
-                    }
-                    if (! $permitido) {
-                        $fail('Solo se permiten correos institucionales de la ULEAM (@live.uleam.edu.ec o @uleam.edu.ec).');
-                    }
-                },
-            ],
+            'correo' => 'required|email',
             'clave' => 'required|string',
         ]);
 

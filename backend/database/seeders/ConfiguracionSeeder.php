@@ -16,6 +16,7 @@ class ConfiguracionSeeder extends Seeder
             ['clave' => 'cuenta_tipo', 'valor' => 'corriente', 'descripcion' => 'Tipo de cuenta'],
             ['clave' => 'cuenta_titular', 'valor' => 'Agromarket ULEAM', 'descripcion' => 'Titular de la cuenta'],
             ['clave' => 'cuenta_cedula', 'valor' => '1234567890', 'descripcion' => 'Cédula del titular'],
+            ['clave' => 'costo_delivery', 'valor' => '1.50', 'descripcion' => 'Costo extra de envío por delivery'],
         ];
 
         foreach ($configs as $config) {

@@ -10,18 +10,24 @@ class UsuarioSeeder extends Seeder
 {
     public function run(): void
     {
-        // Admin
+        // Admin real del proyecto (si no existe, la deja creada;
+        // si ya existe en la BD, no la toca ni sobreescribe la clave)
         Usuario::firstOrCreate(
-            ['correo' => 'admin@live.uleam.edu.ec'],
+            ['correo' => 'adminagromarket@gmail.com'],
             [
-                'cedula' => '1234567890',
-                'nombre_completo' => 'Administrador Sistema',
-                'clave' => Hash::make('password123'),
+                'cedula' => '1234567891',
+                'nombre_completo' => 'Administrador Agromarket',
+                'clave' => Hash::make('admin123'),
                 'rol' => 'administrador',
                 'estado_repartidor' => 'no_postulado',
                 'balance' => 0,
             ]
         );
+
+        // NOTA: este registro vive en la tabla "usuarios" (guard "usuario",
+        // usado por la API móvil con Sanctum). NO da acceso al panel de
+        // Filament — eso lo controla la tabla "users" (guard "web"),
+        // ver UserSeeder.php.
 
         // Repartidores aprobados
         $repartidores = [

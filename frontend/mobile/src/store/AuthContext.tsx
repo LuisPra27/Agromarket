@@ -11,8 +11,12 @@ type PushNavigationListener = (event: { pedidoId: number; tipo?: string }) => vo
 
 class PushNavigationEmitter {
   private listeners: ((event: { pedidoId: number; tipo?: string }) => void)[] = [];
+  // Guardamos el último evento por si todavía no hay un navigationRef listo
+  // (ej. la app se abrió recién y NavigationContainer aún no montó/quedó "ready").
+  private ultimoEvento: PushNavigationEvent | null = null;
 
   emit(event: { pedidoId: number; tipo?: string }) {
+    this.ultimoEvento = event;
     this.listeners.forEach(listener => listener(event));
   }
 
@@ -21,6 +25,12 @@ class PushNavigationEmitter {
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener);
     };
+  }
+
+  consumirUltimoEvento(): PushNavigationEvent | null {
+    const evento = this.ultimoEvento;
+    this.ultimoEvento = null;
+    return evento;
   }
 }
 
@@ -56,14 +66,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Listener para notificaciones push - navegar a seguimiento del pedido
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-      const data = response.notification.request.content.data as Record<string, unknown> | undefined;
+    const emitirSiTienePedido = (
+      data: Record<string, unknown> | undefined
+    ) => {
       if (data?.pedido_id) {
-        // Emitir evento para que AppNavigator navegue
         pushNavigationEmitter.emit({
           pedidoId: Number(data.pedido_id),
           tipo: typeof data.tipo === 'string' ? data.tipo : undefined,
         });
+      }
+    };
+
+    // Caso normal: la app ya estaba corriendo (foreground/background) y el
+    // usuario toca la notificación.
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      emitirSiTienePedido(
+        response.notification.request.content.data as Record<string, unknown> | undefined
+      );
+    });
+
+    // Caso "cold start": el proceso estaba matado y la app se abrió
+    // directamente al tocar la notificación. addNotificationResponseReceivedListener
+    // no siempre alcanza a dispararse a tiempo en este caso, así que revisamos
+    // explícitamente cuál fue la última respuesta de notificación.
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response) {
+        emitirSiTienePedido(
+          response.notification.request.content.data as Record<string, unknown> | undefined
+        );
       }
     });
 
