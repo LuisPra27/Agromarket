@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Alert, ScrollView, TextInput, ActivityIndicator,
+  Alert, ScrollView, TextInput, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../store/AuthContext';
@@ -11,10 +11,22 @@ import { Colors } from '../../constants/colors';
 
 export default function PerfilScreen() {
   const navigation = useNavigation<any>();
-  const { usuario, logout, actualizarUsuario } = useAuth();
-  const [cargando, setCargando] = useState(false);
-  const [facultad, setFacultad] = useState(usuario?.facultad ?? '');
-  const [postulando, setPostulando] = useState(false);
+    const { usuario, logout, actualizarUsuario, refrescarUsuario } = useAuth();
+    const [cargando, setCargando] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [facultad, setFacultad] = useState(usuario?.facultad ?? '');
+    const [postulando, setPostulando] = useState(false);
+
+    // Pull-to-refresh: llama directamente al método estabilizado del contexto
+    const onRefresh = () => {
+      setRefreshing(true);
+      refrescarUsuario().finally(() => setRefreshing(false));
+    };
+
+    // Refrescar al montar la pantalla (cuando el usuario navega a ella)
+    useEffect(() => {
+      refrescarUsuario();
+    }, [refrescarUsuario]);
 
   const handleLogout = async () => {
     Alert.alert('Cerrar sesión', '¿Estás seguro?', [
@@ -77,7 +89,13 @@ export default function PerfilScreen() {
   const estadoConfig = estadoRepartidorConfig[usuario?.estado_repartidor ?? 'no_postulado'];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
 
       {/* Avatar y nombre */}
       <View style={styles.header}>
@@ -92,25 +110,31 @@ export default function PerfilScreen() {
       </View>
 
       {/* Info del usuario */}
-      <View style={styles.seccion}>
-        <Text style={styles.seccionTitulo}>Información de cuenta</Text>
-        <View style={styles.infoFila}>
-          <Text style={styles.infoLabel}>Rol</Text>
-          <Text style={styles.infoValor}>{usuario?.rol}</Text>
-        </View>
-        {usuario?.facultad && (
-          <View style={styles.infoFila}>
-            <Text style={styles.infoLabel}>Facultad</Text>
-            <Text style={styles.infoValor}>{usuario.facultad}</Text>
-          </View>
-        )}
-        <View style={styles.infoFila}>
-          <Text style={styles.infoLabel}>Balance delivery</Text>
-          <Text style={[styles.infoValor, { color: Colors.verde, fontWeight: '700' }]}>
-            ${Number(usuario?.balance ?? 0).toFixed(2)}
-          </Text>
-        </View>
-      </View>
+            <View style={styles.seccion}>
+              <Text style={styles.seccionTitulo}>Información de cuenta</Text>
+              <View style={styles.infoFila}>
+                <Text style={styles.infoLabel}>Rol</Text>
+                <Text style={styles.infoValor}>{usuario?.rol}</Text>
+              </View>
+              {usuario?.facultad && (
+                <View style={styles.infoFila}>
+                  <Text style={styles.infoLabel}>Facultad</Text>
+                  <Text style={styles.infoValor}>{usuario.facultad}</Text>
+                </View>
+              )}
+              {usuario?.telefono && (
+                <View style={styles.infoFila}>
+                  <Text style={styles.infoLabel}>Teléfono</Text>
+                  <Text style={styles.infoValor}>{usuario.telefono}</Text>
+                </View>
+              )}
+              <View style={styles.infoFila}>
+                <Text style={styles.infoLabel}>Balance delivery</Text>
+                <Text style={[styles.infoValor, { color: Colors.verde, fontWeight: '700' }]}>
+                  ${Number(usuario?.balance ?? 0).toFixed(2)}
+                </Text>
+              </View>
+            </View>
 
       {/* Estado de repartidor */}
       <View style={styles.seccion}>

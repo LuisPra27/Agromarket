@@ -9,10 +9,10 @@ use Illuminate\Support\Facades\Route;
 // Rutas públicas
 Route::get('configuraciones/publicas', function () {
     $claves = [
-        'cuenta_banco', 
-        'cuenta_numero', 
-        'cuenta_tipo', 
-        'cuenta_titular', 
+        'cuenta_banco',
+        'cuenta_numero',
+        'cuenta_tipo',
+        'cuenta_titular',
         'cuenta_cedula',
         'costo_delivery',
     ];
@@ -23,6 +23,7 @@ Route::get('configuraciones/publicas', function () {
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
+    Route::post('microsoft', [AuthController::class, 'microsoft']);
 });
 
 // Rutas protegidas
@@ -32,6 +33,7 @@ Route::middleware('auth:usuario')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('push-token', [AuthController::class, 'updatePushToken']);
         Route::post('postular-repartidor', [AuthController::class, 'postularRepartidor']);
+        Route::post('completar-perfil', [AuthController::class, 'completarPerfil']);
     });
 
     // Catálogo

@@ -24,9 +24,21 @@ class ProduccionResource extends Resource
 
     protected static ?string $navigationLabel = 'Producción';
 
+    protected static ?string $pluralModelLabel = 'Pedidos en producción';
+
     protected static ?string $navigationGroup = 'Operaciones del día';
 
     protected static ?int $navigationSort = 2;
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Producción';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Pedidos en producción';
+    }
 
     public static function form(Form $form): Form
     {
@@ -119,7 +131,7 @@ class ProduccionResource extends Resource
                     ->color('success')
                     ->requiresConfirmation()
                     ->modalDescription('¿El pedido está físicamente preparado y listo para ser retirado o entregado?')
-
+                    ->visible(fn (Pedido $record): bool => $record->estado === 'preparando')
                     ->action(function (Pedido $record) {
                         $record->update(['estado' => 'listo_para_delivery']);
 
@@ -182,7 +194,7 @@ class ProduccionResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->whereIn('estado', ['pendiente_validacion', 'preparando', 'listo_para_delivery'])
+            ->whereIn('estado', ['pendiente_validacion', 'preparando'])
             ->with(['cliente', 'detalles.producto']);
     }
 }

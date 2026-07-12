@@ -1,38 +1,76 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Image,
+  Image, Image as RNImage,
 } from 'react-native';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '../../store/AuthContext';
 import api from '../../services/api';
 import { AuthResponse } from '../../types';
 import { Colors } from '../../constants/colors';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  MICROSOFT_CLIENT_ID,
+  MICROSOFT_DISCOVERY,
+  MICROSOFT_SCOPES,
+} from '../../constants/microsoftAuth';
+
+// Necesario para que WebBrowser cierre correctamente el flujo de auth
+// cuando el usuario vuelve de la pantalla de login de Microsoft.
+WebBrowser.maybeCompleteAuthSession();
+
+const redirectUri = AuthSession.makeRedirectUri({ scheme: 'agromarket', path: 'redirect' });
 
 export default function LoginScreen() {
   const { login } = useAuth();
-  const [correo, setCorreo] = useState('');
-  const [clave, setClave] = useState('');
-  const [verClave, setVerClave] = useState(false);
   const [cargando, setCargando] = useState(false);
-  const navigation = useNavigation<any>();
 
-  const handleLogin = async () => {
-    if (!correo || !clave) {
-      Alert.alert('Error', 'Por favor ingresa tu correo y contraseña.');
-      return;
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: MICROSOFT_CLIENT_ID,
+      scopes: MICROSOFT_SCOPES,
+      redirectUri,
+      responseType: AuthSession.ResponseType.Code,
+      usePKCE: true,
+    },
+    MICROSOFT_DISCOVERY
+  );
+
+  useEffect(() => {
+    if (response?.type === 'success' && request) {
+      intercambiarCodigoYLoguear(response.params.code);
+    } else if (response?.type === 'error') {
+      Alert.alert('Error', 'No se pudo iniciar sesión con Microsoft.');
     }
+  }, [response]);
+
+  const intercambiarCodigoYLoguear = async (code: string) => {
+    if (!request?.codeVerifier) return;
     setCargando(true);
     try {
-      const response = await api.post<AuthResponse>('/auth/login', { correo, clave });
-      await login(response.data.token, response.data.usuario);
+      // 1. Cambiamos el código de autorización por un access_token de Microsoft
+      const tokenResult = await AuthSession.exchangeCodeAsync(
+        {
+          clientId: MICROSOFT_CLIENT_ID,
+          code,
+          redirectUri,
+          extraParams: { code_verifier: request.codeVerifier },
+        },
+        MICROSOFT_DISCOVERY
+      );
+
+      // 2. Se lo mandamos a nuestro backend, que valida el token contra
+      //    Microsoft Graph y crea/loguea al usuario.
+      const backendResponse = await api.post<AuthResponse>('/auth/microsoft', {
+        access_token: tokenResult.accessToken,
+      });
+
+      await login(backendResponse.data.token, backendResponse.data.usuario);
     } catch (error: any) {
       const mensaje =
         error.response?.data?.message ||
-        error.response?.data?.errors?.correo?.[0] ||
-        'Error al iniciar sesión. Verifica tus credenciales.';
+        'No se pudo completar el inicio de sesión con Microsoft.';
       Alert.alert('Error', mensaje);
     } finally {
       setCargando(false);
@@ -40,12 +78,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <View style={styles.container}>
       <View style={styles.inner}>
-        {/* Logo */}
         <Image
           source={require('../../../assets/logo.png')}
           style={styles.logo}
@@ -53,64 +87,26 @@ export default function LoginScreen() {
         />
 
         <Text style={styles.bienvenida}>Bienvenido</Text>
-        <Text style={styles.subtitulo}>Inicia sesión con tu correo institucional</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Correo institucional"
-          placeholderTextColor={Colors.grisMedio}
-          value={correo}
-          onChangeText={setCorreo}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        <View style={styles.inputWrapper}>
-          <TextInput
-            style={[styles.input, styles.inputWithIcon]}
-            placeholder="Contraseña"
-            placeholderTextColor={Colors.grisMedio}
-            value={clave}
-            onChangeText={setClave}
-            secureTextEntry={!verClave}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => setVerClave(!verClave)}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons
-              name={verClave ? 'eye-off-outline' : 'eye-outline'}
-              size={22}
-              color={Colors.grisMedio}
-            />
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.subtitulo}>
+          Usa tu cuenta institucional ULEAM para continuar
+        </Text>
 
         <TouchableOpacity
-          style={[styles.boton, cargando && styles.botonDeshabilitado]}
-          onPress={handleLogin}
-          disabled={cargando}
+          style={[styles.boton, (!request || cargando) && styles.botonDeshabilitado]}
+          onPress={() => promptAsync()}
+          disabled={!request || cargando}
         >
           {cargando ? (
             <ActivityIndicator color={Colors.blanco} />
           ) : (
-            <Text style={styles.botonTexto}>Iniciar sesión</Text>
+            <>
+              <Text style={styles.botonIcono}>⊞</Text>
+              <Text style={styles.botonTexto}>Iniciar sesión con Microsoft</Text>
+            </>
           )}
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.btnRegistro}
-          onPress={() => navigation.navigate('Register' as never)}
-        >
-          <Text style={styles.btnRegistroTexto}>
-            ¿No tienes cuenta? <Text style={styles.btnRegistroEnfasis}>Regístrate aquí</Text>
-          </Text>
-        </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -131,48 +127,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 36,
   },
-  input: {
-    backgroundColor: Colors.blanco,
-    borderWidth: 1,
-    borderColor: Colors.grisClaro,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: Colors.negro,
-    marginBottom: 16,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.blanco,
-    borderWidth: 1,
-    borderColor: Colors.grisClaro,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  inputWithIcon: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: Colors.negro,
-    marginBottom: 0,
-  },
-  iconBtn: {
-    padding: 12,
-    paddingRight: 16,
-  },
   boton: {
-    backgroundColor: Colors.verde,
+    flexDirection: 'row',
+    gap: 10,
+    backgroundColor: Colors.naranja,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
   },
   botonDeshabilitado: { opacity: 0.6 },
+  botonIcono: { color: Colors.blanco, fontSize: 18, fontWeight: '700' },
   botonTexto: { color: Colors.blanco, fontSize: 16, fontWeight: '600' },
-  btnRegistro: { alignItems: 'center', paddingVertical: 16 },
-  btnRegistroTexto: { fontSize: 14, color: Colors.grisMedio },
-  btnRegistroEnfasis: { color: Colors.verde, fontWeight: '600' },
 });

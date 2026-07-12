@@ -4,12 +4,16 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UsuarioResource\Pages;
 use App\Models\Usuario;
+use App\Services\ExpoPushService;
+use App\Events\RepartidorAprobado;
+use App\Events\RepartidorRechazado;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
@@ -60,6 +64,10 @@ class UsuarioResource extends Resource
                     ->required(),
                 Forms\Components\TextInput::make('facultad')
                     ->maxLength(100),
+                Forms\Components\TextInput::make('telefono')
+                    ->label('Teléfono')
+                    ->maxLength(20)
+                    ->tel(),
                 Forms\Components\TextInput::make('balance')
                     ->numeric()
                     ->prefix('$')
@@ -79,6 +87,9 @@ class UsuarioResource extends Resource
                 Tables\Columns\TextColumn::make('correo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('facultad')
+                    ->placeholder('—'),
+                Tables\Columns\TextColumn::make('telefono')
+                    ->label('Teléfono')
                     ->placeholder('—'),
                 Tables\Columns\TextColumn::make('rol')
                     ->badge(),
@@ -114,8 +125,21 @@ class UsuarioResource extends Resource
                     ->action(function (Usuario $record) {
                         $record->update(['estado_repartidor' => 'aprobado']);
 
+                        // WebSocket: notificar al usuario en tiempo real si la app está abierta
+                        broadcast(new RepartidorAprobado($record->fresh()))->toOthers();
+
+                        // Push notification: avisar aunque la app esté cerrada
+                        if ($record->expo_push_token) {
+                            ExpoPushService::enviar(
+                                [$record->expo_push_token],
+                                '¡Tu solicitud fue aprobada! 🎉',
+                                'Ya puedes entrar al modo repartidor y recibir pedidos.',
+                                ['tipo' => 'repartidor_aprobado', 'usuario_id' => $record->id]
+                            );
+                        }
+
                         Notification::make()
-                            ->title('Repartidor aprobado')
+                            ->title('Repartidor aprobado correctamente')
                             ->success()
                             ->send();
                     }),
@@ -127,6 +151,19 @@ class UsuarioResource extends Resource
                     ->requiresConfirmation()
                     ->action(function (Usuario $record) {
                         $record->update(['estado_repartidor' => 'rechazado']);
+
+                        // WebSocket: notificar al usuario en tiempo real si la app está abierta
+                        broadcast(new RepartidorRechazado($record->fresh()))->toOthers();
+
+                        // Push notification: avisar aunque la app esté cerrada
+                        if ($record->expo_push_token) {
+                            ExpoPushService::enviar(
+                                [$record->expo_push_token],
+                                'Tu solicitud fue rechazada',
+                                'Puedes volver a postular desde tu perfil cuando quieras.',
+                                ['tipo' => 'repartidor_rechazado', 'usuario_id' => $record->id]
+                            );
+                        }
 
                         Notification::make()
                             ->title('Postulación rechazada')

@@ -64,7 +64,7 @@ class PedidoController extends Controller
 
             // Agregar costo de delivery si aplica
             if ($request->metodo_entrega === 'delivery') {
-                $costoDelivery = (float) \App\Models\Configuracion::get('costo_delivery', 1.50);
+                $costoDelivery = (float) \App\Models\Configuracion::get('costo_delivery', 0.30);
                 $total += $costoDelivery;
             }
 

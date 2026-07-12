@@ -23,7 +23,19 @@ class DeliveryResource extends Resource
 
     protected static ?string $navigationLabel = 'Delivery';
 
+    protected static ?string $pluralModelLabel = 'Pedidos en delivery';
+
     protected static ?string $slug = 'delivery';
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Delivery';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Pedidos en delivery';
+    }
 
     public static function getNavigationBadge(): ?string
     {
