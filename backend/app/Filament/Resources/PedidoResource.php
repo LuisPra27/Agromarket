@@ -28,6 +28,18 @@ class PedidoResource extends Resource
 
     protected static ?string $navigationLabel = 'Caja / Validación';
 
+    protected static ?string $pluralModelLabel = 'Pedidos en caja';
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Caja / Validación';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Pedidos en caja';
+    }
+
     public static function getNavigationBadge(): ?string
     {
         $pendientes = static::getModel()::query()

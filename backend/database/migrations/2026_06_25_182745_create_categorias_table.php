@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('nombre', 50);
             $table->text('descripcion')->nullable();
+            $table->string('icono', 10)->nullable(); // emoji icon
             $table->timestamps();
         });
     }

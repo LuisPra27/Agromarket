@@ -16,5 +16,8 @@ class DatabaseSeeder extends Seeder
             ProductoSeeder::class,
             PedidoSeeder::class,
         ]);
+
+        // Descomentar la siguiente línea SOLO para datos masivos de prueba (tarda ~2-3 min)
+        // $this->call(MassiveUleamSeeder::class);
     }
 }
