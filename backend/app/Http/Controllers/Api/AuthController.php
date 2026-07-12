@@ -183,10 +183,22 @@ class AuthController extends Controller
         return response()->json(['message' => 'Token registrado correctamente.']);
     }
 
+    // Facultades del campus principal de Manta, según carreras.uleam.edu.ec
+    // Deben coincidir con src/constants/facultades.ts (móvil) y el Select
+    // de UsuarioResource.php (admin). Actualiza los tres si cambia la lista.
+    private const FACULTADES = [
+        'Facultad Ciencias de la Salud',
+        'Facultad Ciencias Administrativas, Contables y Comercio',
+        'Facultad de Educación, Turismo, Artes y Humanidades',
+        'Facultad Ingeniería, Industria y Construcción',
+        'Facultad Ciencias de la Vida y Tecnologías',
+        'Facultad Ciencias Sociales, Derecho y Bienestar',
+    ];
+
     public function postularRepartidor(Request $request): JsonResponse
     {
         $request->validate([
-            'facultad' => 'required|string|min:3|max:100',
+            'facultad' => ['required', 'string', Rule::in(self::FACULTADES)],
         ]);
 
         $usuario = $request->user();

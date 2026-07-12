@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Alert, ScrollView, TextInput, ActivityIndicator, RefreshControl,
+  Alert, ScrollView, ActivityIndicator, RefreshControl,
+  Modal, FlatList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../store/AuthContext';
 import api, { API_URL } from '../../services/api';
 import { WS_HOST } from '../../services/realtime';
 import { Colors } from '../../constants/colors';
+import { FACULTADES } from '../../constants/facultades';
 
 export default function PerfilScreen() {
   const navigation = useNavigation<any>();
@@ -16,6 +18,7 @@ export default function PerfilScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [facultad, setFacultad] = useState(usuario?.facultad ?? '');
     const [postulando, setPostulando] = useState(false);
+    const [selectorAbierto, setSelectorAbierto] = useState(false);
 
     // Pull-to-refresh: llama directamente al método estabilizado del contexto
     const onRefresh = () => {
@@ -153,13 +156,47 @@ export default function PerfilScreen() {
                 ? 'Tu solicitud anterior fue rechazada. Puedes volver a intentarlo.'
                 : '¿Quieres ganar dinero entregando pedidos en el campus? ¡Postúlate como repartidor!'}
             </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Tu facultad (ej: Facultad de Ingeniería)"
-              placeholderTextColor={Colors.grisMedio}
-              value={facultad}
-              onChangeText={setFacultad}
-            />
+            <TouchableOpacity
+              style={styles.selectorInput}
+              onPress={() => setSelectorAbierto(true)}
+            >
+              <Text style={facultad ? styles.selectorTexto : styles.selectorPlaceholder}>
+                {facultad || 'Selecciona tu facultad'}
+              </Text>
+              <Text style={styles.selectorFlecha}>▾</Text>
+            </TouchableOpacity>
+
+            <Modal
+              visible={selectorAbierto}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setSelectorAbierto(false)}
+            >
+              <TouchableOpacity
+                style={styles.modalFondo}
+                activeOpacity={1}
+                onPress={() => setSelectorAbierto(false)}
+              >
+                <View style={styles.modalContenido}>
+                  <Text style={styles.modalTitulo}>Selecciona tu facultad</Text>
+                  <FlatList
+                    data={FACULTADES}
+                    keyExtractor={item => item}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.opcion}
+                        onPress={() => {
+                          setFacultad(item);
+                          setSelectorAbierto(false);
+                        }}
+                      >
+                        <Text style={styles.opcionTexto}>{item}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                </View>
+              </TouchableOpacity>
+            </Modal>
             <TouchableOpacity
               style={[styles.btnPostular, postulando && styles.btnDeshabilitado]}
               onPress={handlePostular}
@@ -263,6 +300,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.negro,
   },
+  selectorInput: {
+    borderWidth: 1,
+    borderColor: Colors.grisClaro,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectorTexto: { fontSize: 14, color: Colors.negro, flex: 1 },
+  selectorPlaceholder: { fontSize: 14, color: Colors.grisMedio, flex: 1 },
+  selectorFlecha: { fontSize: 14, color: Colors.grisMedio, marginLeft: 8 },
+  modalFondo: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContenido: {
+    backgroundColor: Colors.blanco,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+    maxHeight: '70%',
+  },
+  modalTitulo: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.negro,
+    textAlign: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 16,
+  },
+  opcion: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.grisClaro,
+  },
+  opcionTexto: { fontSize: 14, color: Colors.negro },
   btnPostular: {
     backgroundColor: Colors.naranja,
     borderRadius: 12,

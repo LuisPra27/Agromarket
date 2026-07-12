@@ -62,8 +62,16 @@ class UsuarioResource extends Resource
                         'rechazado' => 'Rechazado',
                     ])
                     ->required(),
-                Forms\Components\TextInput::make('facultad')
-                    ->maxLength(100),
+                Forms\Components\Select::make('facultad')
+                    ->options([
+                        'Facultad Ciencias de la Salud' => 'Facultad Ciencias de la Salud',
+                        'Facultad Ciencias Administrativas, Contables y Comercio' => 'Facultad Ciencias Administrativas, Contables y Comercio',
+                        'Facultad de Educación, Turismo, Artes y Humanidades' => 'Facultad de Educación, Turismo, Artes y Humanidades',
+                        'Facultad Ingeniería, Industria y Construcción' => 'Facultad Ingeniería, Industria y Construcción',
+                        'Facultad Ciencias de la Vida y Tecnologías' => 'Facultad Ciencias de la Vida y Tecnologías',
+                        'Facultad Ciencias Sociales, Derecho y Bienestar' => 'Facultad Ciencias Sociales, Derecho y Bienestar',
+                    ])
+                    ->searchable(),
                 Forms\Components\TextInput::make('telefono')
                     ->label('Teléfono')
                     ->maxLength(20)

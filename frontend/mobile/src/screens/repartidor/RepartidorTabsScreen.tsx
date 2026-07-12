@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator, BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import TableroPedidosScreen from './TableroPedidosScreen';
 import ViajeActualScreen from './ViajeActualScreen';
 import EscanerQRScreen from './EscanerQRScreen';
@@ -10,12 +11,12 @@ import { useAuth } from '../../store/AuthContext';
 
 const Tab = createBottomTabNavigator();
 
-export default function RepartidorTabsScreen() {
+export default function RepartidorTabsScreen({ navigation }: BottomTabScreenProps<any>) {
   const { usuario } = useAuth();
 
   return (
     <Tab.Navigator
-      screenOptions={({ navigation }) => ({
+      screenOptions={({ route }) => ({
         tabBarActiveTintColor: Colors.naranja,
         tabBarInactiveTintColor: Colors.grisMedio,
         headerShown: true,
@@ -24,12 +25,27 @@ export default function RepartidorTabsScreen() {
         headerTitleStyle: { fontWeight: 'bold' },
         headerLeft: () => (
           <TouchableOpacity
-            onPress={() => navigation.getParent()?.goBack()}
+            onPress={() => navigation.goBack()}
             style={{ paddingHorizontal: 16 }}
           >
             <Text style={{ color: Colors.blanco, fontSize: 15, fontWeight: '600' }}>‹ Volver</Text>
           </TouchableOpacity>
         ),
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: string;
+          if (route.name === 'Viajes') {
+            iconName = focused ? 'list' : 'list-outline';
+          } else if (route.name === 'ViajeActual') {
+            iconName = focused ? 'map' : 'map-outline';
+          } else if (route.name === 'Escanear') {
+            iconName = focused ? 'qr-code' : 'qr-code-outline';
+          } else if (route.name === 'Billetera') {
+            iconName = focused ? 'wallet' : 'wallet-outline';
+          } else {
+            iconName = 'help-circle-outline';
+          }
+          return <Ionicons name={iconName as any} size={size} color={color} />;
+        },
       })}
     >
       <Tab.Screen
