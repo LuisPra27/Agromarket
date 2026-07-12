@@ -8,6 +8,7 @@ use Livewire\Component;
 class NavigationBadges extends Component
 {
     public int $pendientesValidacion = 0;
+    public int $enProduccion = 0;
     public int $enDelivery = 0;
 
     public function mount()
@@ -31,6 +32,7 @@ class NavigationBadges extends Component
     public function actualizarContadores()
     {
         $this->pendientesValidacion = Pedido::where('estado', 'pendiente_validacion')->count();
+        $this->enProduccion = Pedido::where('estado', 'preparando')->count();
         $this->enDelivery = Pedido::where('metodo_entrega', 'delivery')
             ->whereIn('estado', ['listo_para_delivery', 'en_camino'])
             ->count();
