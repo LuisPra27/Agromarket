@@ -64,6 +64,10 @@ class UsuarioResource extends Resource
                     ->required(),
                 Forms\Components\TextInput::make('facultad')
                     ->maxLength(100),
+                Forms\Components\TextInput::make('telefono')
+                    ->label('Teléfono')
+                    ->maxLength(20)
+                    ->tel(),
                 Forms\Components\TextInput::make('balance')
                     ->numeric()
                     ->prefix('$')
@@ -83,6 +87,9 @@ class UsuarioResource extends Resource
                 Tables\Columns\TextColumn::make('correo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('facultad')
+                    ->placeholder('—'),
+                Tables\Columns\TextColumn::make('telefono')
+                    ->label('Teléfono')
                     ->placeholder('—'),
                 Tables\Columns\TextColumn::make('rol')
                     ->badge(),

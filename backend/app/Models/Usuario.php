@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'cedula', 'nombre_completo', 'correo', 'microsoft_id', 'clave', 'rol',
-    'estado_repartidor', 'facultad', 'balance', 'expo_push_token',
+    'estado_repartidor', 'facultad', 'balance', 'expo_push_token', 'telefono',
 ])]
 #[Hidden(['clave'])]
 class Usuario extends Authenticatable

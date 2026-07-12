@@ -10,10 +10,11 @@ import { Colors } from '../../constants/colors';
 
 // Se muestra una sola vez, justo después del primer login con Microsoft,
 // cuando el usuario todavía no tiene cédula guardada (la BD la sigue
-// necesitando para el resto de la lógica de la app).
+// necesitando para el resto de la lógica de la app: pedidos, liquidaciones, etc.)
 export default function CompletarPerfilScreen() {
   const { actualizarUsuario, usuario } = useAuth();
   const [cedula, setCedula] = useState('');
+  const [telefono, setTelefono] = useState('');
   const [cargando, setCargando] = useState(false);
 
   const handleContinuar = async () => {
@@ -21,17 +22,22 @@ export default function CompletarPerfilScreen() {
       Alert.alert('Error', 'La cédula debe tener exactamente 10 dígitos.');
       return;
     }
+    if (!telefono.trim()) {
+      Alert.alert('Error', 'El número de teléfono es obligatorio.');
+      return;
+    }
     setCargando(true);
     try {
       const response = await api.post<{ usuario: Usuario }>('/auth/completar-perfil', {
         cedula,
+        telefono: telefono.trim(),
       });
       actualizarUsuario(response.data.usuario);
     } catch (error: any) {
       const errores = error.response?.data?.errors;
       const mensaje = errores
         ? (Object.values(errores)[0] as string[])[0]
-        : error.response?.data?.message ?? 'No se pudo guardar la cédula.';
+        : error.response?.data?.message ?? 'No se pudo guardar la información.';
       Alert.alert('Error', mensaje);
     } finally {
       setCargando(false);
@@ -39,32 +45,42 @@ export default function CompletarPerfilScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.inner}>
-        <Text style={styles.titulo}>Un último paso</Text>
-        <Text style={styles.subtitulo}>
-          {usuario?.nombre_completo ? `Hola, ${usuario.nombre_completo.split(' ')[0]}. ` : ''}
-          Necesitamos tu cédula para poder validar tus pedidos y pagos.
-        </Text>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.inner}>
+          <Text style={styles.titulo}>Un último paso</Text>
+          <Text style={styles.subtitulo}>
+            {usuario?.nombre_completo ? `Hola, ${usuario.nombre_completo.split(' ')[0]}. ` : ''}
+            Necesitamos tu cédula y teléfono para poder validar tus pedidos y pagos.
+          </Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Número de cédula (sin guión)"
-          placeholderTextColor={Colors.grisMedio}
-          value={cedula}
-          onChangeText={v => setCedula(v.replace(/\D/g, '').slice(0, 10))}
-          keyboardType="numeric"
-          maxLength={10}
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Número de cédula (sin guión)"
+            placeholderTextColor={Colors.grisMedio}
+            value={cedula}
+            onChangeText={v => setCedula(v.replace(/\D/g, '').slice(0, 10))}
+            keyboardType="numeric"
+            maxLength={10}
+          />
 
-        <TouchableOpacity
-          style={[styles.boton, (cargando || cedula.length !== 10) && styles.botonDeshabilitado]}
-          onPress={handleContinuar}
-          disabled={cargando || cedula.length !== 10}
-        >
+          <TextInput
+            style={styles.input}
+            placeholder="Número de teléfono"
+            placeholderTextColor={Colors.grisMedio}
+            value={telefono}
+            onChangeText={v => setTelefono(v.replace(/\D/g, '').slice(0, 15))}
+            keyboardType="phone-pad"
+            maxLength={15}
+          />
+
+          <TouchableOpacity
+            style={[styles.boton, (cargando || cedula.length !== 10 || !telefono.trim()) && styles.botonDeshabilitado]}
+            onPress={handleContinuar}
+            disabled={cargando || cedula.length !== 10 || !telefono.trim()}
+          >
           {cargando ? (
             <ActivityIndicator color={Colors.blanco} />
           ) : (

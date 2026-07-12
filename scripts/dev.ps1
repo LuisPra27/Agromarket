@@ -59,10 +59,22 @@ function Update-EnvIP {
         return $null
     }
 
-    @(
-        "EXPO_PUBLIC_API_URL=http://$($ip):8000"
-        "EXPO_PUBLIC_WS_HOST=$($ip)"
-    ) | Set-Content $EnvPath -Encoding UTF8
+    # Leer .env existente y preservar otras variables (ej. MICROSOFT_CLIENT_ID)
+    $existing = @{}
+    if (Test-Path $EnvPath) {
+        Get-Content $EnvPath | ForEach-Object {
+            if ($_ -match '^([^=]+)=(.*)$') {
+                $existing[$matches[1]] = $matches[2]
+            }
+        }
+    }
+
+    # Actualizar solo las IPs
+    $existing['EXPO_PUBLIC_API_URL'] = "http://$($ip):8000"
+    $existing['EXPO_PUBLIC_WS_HOST'] = $ip
+
+    # Escribir de vuelta conservando todo
+    $existing.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" } | Set-Content $EnvPath -Encoding UTF8
 
     Write-Host "IP detectada y actualizada: $ip" -ForegroundColor Green
 

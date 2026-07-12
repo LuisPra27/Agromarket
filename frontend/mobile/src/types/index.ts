@@ -4,6 +4,7 @@ export interface Usuario {
   cedula: string | null;
   nombre_completo: string;
   correo: string;
+  telefono: string | null;
   expo_push_token?: string | null;
   rol: 'cliente' | 'administrador';
   estado_repartidor: 'no_postulado' | 'pendiente' | 'aprobado' | 'rechazado';

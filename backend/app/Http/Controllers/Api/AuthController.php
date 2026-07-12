@@ -72,7 +72,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // Completa la cédula tras el primer login con Microsoft (la BD la sigue
+    // Completa la cédula y teléfono tras el primer login con Microsoft (la BD la sigue
     // exigiendo para el resto de la lógica de la app: pedidos, liquidaciones, etc.)
     public function completarPerfil(Request $request): JsonResponse
     {
@@ -85,9 +85,13 @@ class AuthController extends Controller
                 'size:10',
                 Rule::unique('usuarios', 'cedula')->ignore($usuario->id),
             ],
+            'telefono' => ['nullable', 'string', 'max:20'],
         ]);
 
-        $usuario->update(['cedula' => $request->cedula]);
+        $usuario->update([
+            'cedula' => $request->cedula,
+            'telefono' => $request->telefono,
+        ]);
 
         return response()->json([
             'usuario' => $usuario->fresh(),
@@ -101,6 +105,7 @@ class AuthController extends Controller
             'nombre_completo' => 'required|string|max:100',
             'correo' => 'required|email|unique:usuarios,correo',
             'clave' => 'required|string|min:6|confirmed',
+            'telefono' => ['nullable', 'string', 'max:20'],
         ]);
 
         $usuario = Usuario::create([
@@ -108,6 +113,7 @@ class AuthController extends Controller
             'nombre_completo'   => $request->nombre_completo,
             'correo'            => $request->correo,
             'clave'             => $request->clave,
+            'telefono'          => $request->telefono,
             'rol'               => 'cliente',
             'estado_repartidor' => 'no_postulado',
             'balance'           => 0,

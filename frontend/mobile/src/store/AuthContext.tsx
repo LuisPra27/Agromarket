@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { AppState } from 'react-native';
@@ -56,17 +56,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    cargarSesion();
-  }, []);
+      cargarSesion();
+    }, []);
 
-  useEffect(() => {
+    // Suscripción WebSocket a eventos del usuario (aprobación/rechazo repartidor)
+    // Se ejecuta UNA VEZ al loguearse (cuando token cambia de null a string)
+    // Usamos ref para siempre tener el usuario actual sin re-suscribirse
+    const usuarioRef = useRef<Usuario | null>(null);
+    usuarioRef.current = usuario;
+
+    useEffect(() => {
       if (!token || !usuario?.id) {
         return;
       }
 
       registrarExpoPushToken(usuario.id);
 
-      // Suscribirse a eventos WebSocket del usuario (aprobación/rechazo repartidor)
+      // Suscribirse a eventos WebSocket del usuario
       const unsubscribe = subscribeToUsuarioEvents(
         usuario.id,
         () => {
@@ -80,7 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       );
 
       return () => unsubscribe();
-    }, [token, usuario?.id]);
+    }, [token]); // Solo depende de token (login/logout), NO de usuario
 
   // Listener para notificaciones push - navegar a seguimiento del pedido
     useEffect(() => {
@@ -119,15 +125,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     // Refrescar usuario automáticamente cuando la app vuelve al primer plano
-    useEffect(() => {
-      const subscription = AppState.addEventListener('change', nextState => {
-        if (nextState === 'active' && token && usuario?.id) {
-          refrescarUsuario();
-        }
-      });
+        useEffect(() => {
+          const subscription = AppState.addEventListener('change', nextState => {
+            if (nextState === 'active' && token && usuario?.id) {
+              refrescarUsuario();
+            }
+          });
 
-      return () => subscription.remove();
-    }, [token, usuario?.id]);
+          return () => subscription.remove();
+        }, [token]); // Solo depende de token
 
     const cargarSesion = async () => {
     try {
@@ -144,43 +150,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const login = async (token: string, usuario: Usuario) => {
-    await AsyncStorage.setItem('auth_token', token);
-    await AsyncStorage.setItem('auth_usuario', JSON.stringify(usuario));
-    setToken(token);
-    setUsuario(usuario);
-  };
-
-  const logout = async () => {
-    if (usuario?.id) {
-      await limpiarExpoPushToken(usuario.id);
-    }
-    await AsyncStorage.removeItem('auth_token');
-    await AsyncStorage.removeItem('auth_usuario');
-    setToken(null);
-    setUsuario(null);
-  };
-
-  const actualizarUsuario = (usuario: Usuario) => {
+  const login = useCallback(async (token: string, usuario: Usuario) => {
+      await AsyncStorage.setItem('auth_token', token);
+      await AsyncStorage.setItem('auth_usuario', JSON.stringify(usuario));
+      setToken(token);
       setUsuario(usuario);
-      AsyncStorage.setItem('auth_usuario', JSON.stringify(usuario));
-    };
+    }, []);
 
-    // Refresca el usuario desde el backend y actualiza AsyncStorage
-    const refrescarUsuario = async () => {
-      if (!token) return;
-      try {
-        const response = await api.get('/auth/me');
-        const usuarioActualizado = response.data;
-        setUsuario(usuarioActualizado);
-        await AsyncStorage.setItem('auth_usuario', JSON.stringify(usuarioActualizado));
-        return usuarioActualizado;
-      } catch (error) {
-        console.error('Error refrescando usuario:', error);
-        // Si falla por 401, el interceptor ya limpia el token
-        return null;
+    const logout = useCallback(async () => {
+      if (usuario?.id) {
+        await limpiarExpoPushToken(usuario.id);
       }
-    };
+      await AsyncStorage.removeItem('auth_token');
+      await AsyncStorage.removeItem('auth_usuario');
+      setToken(null);
+      setUsuario(null);
+    }, [usuario?.id]);
+
+    const actualizarUsuario = useCallback((usuario: Usuario) => {
+        setUsuario(usuario);
+        AsyncStorage.setItem('auth_usuario', JSON.stringify(usuario));
+      }, []);
+
+      // Refresca el usuario desde el backend y actualiza AsyncStorage
+          const refrescarUsuario = useCallback(async () => {
+            if (!token) return;
+            try {
+              const response = await api.get('/auth/me');
+              const usuarioActualizado = response.data;
+              setUsuario(usuarioActualizado);
+              await AsyncStorage.setItem('auth_usuario', JSON.stringify(usuarioActualizado));
+              return usuarioActualizado;
+            } catch (error) {
+              console.error('Error refrescando usuario:', error);
+              // Si falla por 401, el interceptor ya limpia el token
+              return null;
+            }
+          }, [token]); // Solo depende de token
 
     return (
       <AuthContext.Provider

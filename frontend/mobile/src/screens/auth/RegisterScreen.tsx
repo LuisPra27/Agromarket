@@ -15,13 +15,14 @@ export default function RegisterScreen() {
   const { login } = useAuth();
 
   const [cedula, setCedula] = useState('');
-  const [correo, setCorreo] = useState('');
-  const [nombreCompleto, setNombreCompleto] = useState('');
-  const [clave, setClave] = useState('');
-  const [claveConfirmacion, setClaveConfirmacion] = useState('');
-  const [verClave, setVerClave] = useState(false);
-  const [verClaveConfirmacion, setVerClaveConfirmacion] = useState(false);
-  const [cargando, setCargando] = useState(false);
+    const [correo, setCorreo] = useState('');
+    const [nombreCompleto, setNombreCompleto] = useState('');
+    const [clave, setClave] = useState('');
+    const [claveConfirmacion, setClaveConfirmacion] = useState('');
+    const [telefono, setTelefono] = useState('');
+    const [verClave, setVerClave] = useState(false);
+    const [verClaveConfirmacion, setVerClaveConfirmacion] = useState(false);
+    const [cargando, setCargando] = useState(false);
 
   const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.trim());
   const puedeRegistrar = cedula.length === 10 && correoValido;
@@ -49,14 +50,15 @@ export default function RegisterScreen() {
     }
 
     setCargando(true);
-    try {
-      const response = await api.post<AuthResponse>('/auth/register', {
-        cedula,
-        nombre_completo: nombreCompleto.trim(),
-        correo: correo.trim().toLowerCase(),
-        clave,
-        clave_confirmation: claveConfirmacion,
-      });
+        try {
+          const response = await api.post<AuthResponse>('/auth/register', {
+            cedula,
+            nombre_completo: nombreCompleto.trim(),
+            correo: correo.trim().toLowerCase(),
+            clave,
+            clave_confirmation: claveConfirmacion,
+            telefono: telefono.trim() || undefined,
+          });
 
       await login(response.data.token, response.data.usuario);
     } catch (error: any) {
@@ -183,11 +185,25 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </View>
           {claveConfirmacion && clave !== claveConfirmacion && (
-            <Text style={styles.errorTexto}>Las contraseñas no coinciden</Text>
-          )}
-        </View>
+                      <Text style={styles.errorTexto}>Las contraseñas no coinciden</Text>
+                    )}
+                  </View>
 
-        {/* Botón registrar */}
+                  {/* Teléfono */}
+                  <View style={styles.campo}>
+                    <Text style={styles.label}>Teléfono (opcional)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Número de teléfono"
+                      placeholderTextColor={Colors.grisMedio}
+                      value={telefono}
+                      onChangeText={v => setTelefono(v.replace(/\D/g, '').slice(0, 15))}
+                      keyboardType="phone-pad"
+                      maxLength={15}
+                    />
+                  </View>
+
+                  {/* Botón registrar */}
         <TouchableOpacity
           style={[styles.boton, (cargando || !puedeRegistrar) && styles.botonDeshabilitado]}
           onPress={handleRegister}
