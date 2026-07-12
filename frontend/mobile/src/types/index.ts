@@ -1,7 +1,7 @@
 // ─── Modelos ────────────────────────────────────────────
 export interface Usuario {
   id: number;
-  cedula: string;
+  cedula: string | null;
   nombre_completo: string;
   correo: string;
   expo_push_token?: string | null;

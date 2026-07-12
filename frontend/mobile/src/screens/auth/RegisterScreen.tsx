@@ -15,6 +15,7 @@ export default function RegisterScreen() {
   const { login } = useAuth();
 
   const [cedula, setCedula] = useState('');
+  const [correo, setCorreo] = useState('');
   const [nombreCompleto, setNombreCompleto] = useState('');
   const [clave, setClave] = useState('');
   const [claveConfirmacion, setClaveConfirmacion] = useState('');
@@ -22,12 +23,16 @@ export default function RegisterScreen() {
   const [verClaveConfirmacion, setVerClaveConfirmacion] = useState(false);
   const [cargando, setCargando] = useState(false);
 
-  // El correo se auto-genera desde la cédula
-  const correoGenerado = cedula.length === 10 ? `e${cedula}@live.uleam.edu.ec` : '';
+  const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.trim());
+  const puedeRegistrar = cedula.length === 10 && correoValido;
 
   const handleRegister = async () => {
     if (!cedula || cedula.length !== 10) {
       Alert.alert('Error', 'La cédula debe tener exactamente 10 dígitos.');
+      return;
+    }
+    if (!correoValido) {
+      Alert.alert('Error', 'Ingresa un correo electrónico válido.');
       return;
     }
     if (!nombreCompleto.trim()) {
@@ -48,7 +53,7 @@ export default function RegisterScreen() {
       const response = await api.post<AuthResponse>('/auth/register', {
         cedula,
         nombre_completo: nombreCompleto.trim(),
-        correo: correoGenerado,
+        correo: correo.trim().toLowerCase(),
         clave,
         clave_confirmation: claveConfirmacion,
       });
@@ -75,7 +80,7 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
 
         <Text style={styles.titulo}>Crear cuenta</Text>
-        <Text style={styles.subtitulo}>Ingresa tu cédula</Text>
+        <Text style={styles.subtitulo}>Ingresa tus datos</Text>
 
         {/* Cédula */}
         <View style={styles.campo}>
@@ -91,19 +96,23 @@ export default function RegisterScreen() {
           />
         </View>
 
-        {/* Correo auto-generado */}
-        {correoGenerado ? (
-          <View style={styles.correoPreview}>
-            <Text style={styles.correoLabel}>✅ Tu correo institucional:</Text>
-            <Text style={styles.correoValor}>{correoGenerado}</Text>
-          </View>
-        ) : (
-          <View style={styles.correoPreview}>
-            <Text style={styles.correoHint}>
-              💡 Ingresa tu cédula para ver tu correo institucional
-            </Text>
-          </View>
-        )}
+        {/* Correo */}
+        <View style={styles.campo}>
+          <Text style={styles.label}>Correo electrónico</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="tucorreo@ejemplo.com"
+            placeholderTextColor={Colors.grisMedio}
+            value={correo}
+            onChangeText={setCorreo}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {correo.length > 0 && !correoValido && (
+            <Text style={styles.errorTexto}>Ingresa un correo válido</Text>
+          )}
+        </View>
 
         {/* Nombre completo */}
         <View style={styles.campo}>
@@ -180,9 +189,9 @@ export default function RegisterScreen() {
 
         {/* Botón registrar */}
         <TouchableOpacity
-          style={[styles.boton, (cargando || !correoGenerado) && styles.botonDeshabilitado]}
+          style={[styles.boton, (cargando || !puedeRegistrar) && styles.botonDeshabilitado]}
           onPress={handleRegister}
-          disabled={cargando || !correoGenerado}
+          disabled={cargando || !puedeRegistrar}
         >
           {cargando ? (
             <ActivityIndicator color={Colors.blanco} />
@@ -242,17 +251,6 @@ const styles = StyleSheet.create({
   },
   inputError: { borderColor: '#ef4444' },
   errorTexto: { fontSize: 12, color: '#ef4444', marginTop: 2 },
-  correoPreview: {
-    backgroundColor: Colors.blanco,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: Colors.grisClaro,
-    gap: 4,
-  },
-  correoLabel: { fontSize: 12, color: Colors.verde, fontWeight: '600' },
-  correoValor: { fontSize: 15, color: Colors.negro, fontWeight: '500' },
-  correoHint: { fontSize: 13, color: Colors.grisMedio },
   boton: {
     backgroundColor: Colors.verde,
     borderRadius: 12,

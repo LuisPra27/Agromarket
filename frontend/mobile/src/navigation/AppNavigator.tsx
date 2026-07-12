@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../store/AuthContext';
 import LoginScreen from '../screens/auth/LoginScreen';
-import RegisterScreen from '../screens/auth/RegisterScreen';
+import CompletarPerfilScreen from '../screens/auth/CompletarPerfilScreen';
 import ClienteTabs from './ClienteTabs';
 import CheckoutScreen from '../screens/cliente/CheckoutScreen';
 import SeguimientoPedidoScreen from '../screens/cliente/SeguimientoPedidoScreen';
@@ -17,20 +17,37 @@ const Stack = createNativeStackNavigator();
 export default function AppNavigator() {
   const { usuario, isLoading } = useAuth();
   const navigationRef = useRef<any>(null);
+  // Si llega un evento de navegación por push antes de que el navigator
+  // esté listo (ej. cold start), lo guardamos aquí y lo procesamos en
+  // cuanto NavigationContainer dispare onReady.
+  const eventoPendienteRef = useRef<{ pedidoId: number; tipo?: string } | null>(null);
+
+  const navegarAPedido = (event: { pedidoId: number; tipo?: string }) => {
+    const { pedidoId } = event;
+    if (!pedidoId) return;
+
+    if (navigationRef.current?.isReady?.()) {
+      navigationRef.current.navigate('SeguimientoPedido', { pedidoId });
+    } else {
+      // Navigator no listo todavía: lo dejamos pendiente para cuando lo esté.
+      eventoPendienteRef.current = event;
+    }
+  };
 
   // Listener para navegación desde notificaciones push
   // IMPORTANTE: este hook debe ir SIEMPRE antes de cualquier return condicional,
   // si no, React lanza "Rendered more hooks than during the previous render"
   // en cuanto isLoading pasa de true a false.
   useEffect(() => {
-    const handlePushNavigation = (event: { pedidoId: number; tipo?: string }) => {
-      const { pedidoId } = event;
-      if (pedidoId) {
-        navigationRef.current?.navigate('SeguimientoPedido', { pedidoId });
-      }
-    };
+    const unsubscribe = pushNavigationEmitter.addListener(navegarAPedido);
 
-    const unsubscribe = pushNavigationEmitter.addListener(handlePushNavigation);
+    // Por si el evento se emitió (ej. cold start) antes de que este listener
+    // se registrara, revisamos si quedó algo pendiente en el emisor.
+    const ultimoEvento = pushNavigationEmitter.consumirUltimoEvento();
+    if (ultimoEvento) {
+      navegarAPedido(ultimoEvento);
+    }
+
     return () => unsubscribe();
   }, []);
 
@@ -43,9 +60,20 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={() => {
+        // El navigator ya está listo: si había un evento pendiente
+        // (llegó antes de tiempo), lo procesamos ahora.
+        if (eventoPendienteRef.current) {
+          const evento = eventoPendienteRef.current;
+          eventoPendienteRef.current = null;
+          navegarAPedido(evento);
+        }
+      }}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {usuario ? (
+        {usuario && usuario.cedula ? (
           <>
             <Stack.Screen name="Main" component={ClienteTabs} />
             <Stack.Screen
@@ -63,20 +91,12 @@ export default function AppNavigator() {
               component={RepartidorTabsScreen}
             />
           </>
+        ) : usuario && !usuario.cedula ? (
+          // Logueado con Microsoft por primera vez: falta la cédula antes
+          // de poder usar el resto de la app.
+          <Stack.Screen name="CompletarPerfil" component={CompletarPerfilScreen} />
         ) : (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen
-              name="Register"
-              component={RegisterScreen}
-              options={{
-                headerShown: true,
-                title: 'Crear cuenta',
-                headerTintColor: Colors.verde,
-                headerBackTitle: 'Volver',
-              }}
-            />
-          </>
+          <Stack.Screen name="Login" component={LoginScreen} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
