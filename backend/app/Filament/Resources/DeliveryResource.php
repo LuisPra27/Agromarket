@@ -95,17 +95,8 @@ class DeliveryResource extends Resource
                     ->placeholder('Esperando repartidor...')
                     ->color(fn ($state) => $state ? 'success' : 'gray')
                     ->toggleable(),
-                Tables\Columns\TextColumn::make('repartidor.facultad')
-                    ->label('Facultad repartidor')
-                    ->placeholder('—')
-                    ->toggleable(),
                 Tables\Columns\TextColumn::make('total')
                     ->money('USD')
-                    ->toggleable(),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Última actualización')
-                    ->dateTime('H:i — d/m/Y')
-                    ->sortable()
                     ->toggleable(),
             ])
             ->filters([
