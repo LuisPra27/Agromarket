@@ -9,13 +9,13 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class PedidoListoParaDelivery implements ShouldBroadcastNow
+class PedidoEntregado implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(public Pedido $pedido)
     {
-        $this->pedido = $pedido->load(['cliente', 'detalles.producto']);
+        $this->pedido = $pedido->load(['cliente', 'repartidor', 'detalles.producto']);
     }
 
     public function broadcastOn(): array
@@ -27,17 +27,16 @@ class PedidoListoParaDelivery implements ShouldBroadcastNow
 
     public function broadcastAs(): string
     {
-        return 'pedido.listo_para_delivery';
+        return 'pedido.entregado';
     }
 
     public function broadcastWith(): array
     {
         return [
             'id' => $this->pedido->id,
-            'estado_anterior' => 'preparando',
-            'estado_nuevo' => 'listo_para_delivery',
+            'estado_anterior' => 'en_camino',
+            'estado_nuevo' => 'entregado',
             'metodo_entrega' => $this->pedido->metodo_entrega,
-            'total' => $this->pedido->total,
         ];
     }
 }

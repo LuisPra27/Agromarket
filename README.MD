@@ -51,7 +51,7 @@ E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (
 
 > **Decisión de diseño — ubicación de entrega:** se descartó un catálogo `ubicaciones` (tabla aparte) y coordenadas GPS reales. En su lugar, `pedidos` guarda un campo de texto libre (`punto_encuentro`) más dos coordenadas porcentuales (`pin_x`, `pin_y`) que ubican un pin sobre una imagen estática del mapa del campus ULEAM. Esto resuelve que estudiantes no familiarizados con los nombres de las facultades puedan señalar visualmente dónde están, sin la complejidad de GPS en tiempo real ni un catálogo de puntos fijos.
 
-> **Pendiente para fase de Auth (Fase 8):** el modelo de autenticación usa la tabla `usuarios` (no la `users` default de Laravel). Habrá que apuntar el modelo `User`/guard de Sanctum a `usuarios` y revisar el campo `clave` vs `password`.
+> **Resuelto en Fase 8:** el modelo de autenticación usa la tabla `usuarios` (no la `users` default de Laravel). El modelo `Usuario` extiende `Authenticatable` + `HasApiTokens`, usa `$authPasswordName = 'clave'` y `config/auth.php` apunta a `Usuario::class`.
 
 ### Fase 4. Panel Admin — Módulo Inventario ✅ COMPLETA
 - [x] Modelo `Categoria` (relación hasMany con Producto)
@@ -289,8 +289,5 @@ agromarket-fcvt/
 
 
 ### Pendientes antes de producción
-- [ ] `DatabaseSeeder` con datos críticos (admin, configuraciones) para que `migrate:fresh` deje el sistema funcional
-- [ ] Validación de formato de correo institucional (`@live.uleam.edu.ec`) en la API
-- [ ] Badges del menú admin con actualización automática sin recargar página
-- [ ] Registro de nuevos usuarios desde la app móvil (actualmente solo desde Filament)
+- [ ] Badges del menú admin con actualización automática sin recargar página (actualmente usan polling 5-10s)
 - [ ] Cambiar a patrón sin volumen `-v` en producción (código copiado en imagen)

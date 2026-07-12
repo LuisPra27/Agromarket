@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class PedidoListoParaDelivery implements ShouldBroadcastNow
+class PedidoAprobado implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -27,15 +27,15 @@ class PedidoListoParaDelivery implements ShouldBroadcastNow
 
     public function broadcastAs(): string
     {
-        return 'pedido.listo_para_delivery';
+        return 'pedido.aprobado';
     }
 
     public function broadcastWith(): array
     {
         return [
             'id' => $this->pedido->id,
-            'estado_anterior' => 'preparando',
-            'estado_nuevo' => 'listo_para_delivery',
+            'estado_anterior' => 'pendiente_validacion',
+            'estado_nuevo' => 'preparando',
             'metodo_entrega' => $this->pedido->metodo_entrega,
             'total' => $this->pedido->total,
         ];

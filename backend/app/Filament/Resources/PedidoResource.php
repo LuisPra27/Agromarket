@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Services\ExpoPushService;
+use App\Events\PedidoAprobado;
+use App\Events\PedidoRechazado;
 
 class PedidoResource extends Resource
 {
@@ -153,12 +155,14 @@ class PedidoResource extends Resource
                                 'codigo_qr_hash' => (string) Str::uuid(),
                             ]);
                         });
+                        // Disparar evento para badges admin en tiempo real
+                        event(new PedidoAprobado($record->fresh()));
                         ExpoPushService::enviar(
-                        [$record->cliente->expo_push_token],
-                        'Tu pedido está listo 🎉',
-                        "Pedido aprobado. Ya puedes ver tu código QR en la app.",
-                        ['tipo' => 'pedido_aprobado', 'pedido_id' => $record->id]
-                    );
+                            [$record->cliente->expo_push_token],
+                            'Tu pedido está listo 🎉',
+                            "Pedido aprobado. Ya puedes ver tu código QR en la app.",
+                            ['tipo' => 'pedido_aprobado', 'pedido_id' => $record->id]
+                        );
 
                         Notification::make()->title('Pedido aprobado')->success()->send();
                     }),
@@ -171,6 +175,10 @@ class PedidoResource extends Resource
                     ->visible(fn (Pedido $record): bool => $record->estado === 'pendiente_validacion')
                     ->action(function (Pedido $record) {
                         $record->update(['estado' => 'rechazado']);
+                        
+                        // Disparar evento para badges admin en tiempo real
+                        event(new PedidoRechazado($record->fresh()));
+
                         Notification::make()->title('Pedido rechazado')->warning()->send();
                     }),
                     Tables\Actions\Action::make('ver_detalle')

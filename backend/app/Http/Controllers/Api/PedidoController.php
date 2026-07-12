@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Services\ExpoPushService;
+use App\Events\PedidoCreado;
+use App\Events\PedidoAceptadoRepartidor;
+use App\Events\PedidoEntregado;
 
 class PedidoController extends Controller
 {
@@ -91,6 +94,9 @@ class PedidoController extends Controller
                 ]);
             }
 
+            // Disparar evento para badges admin en tiempo real
+            event(new PedidoCreado($pedido));
+
             return $pedido;
         });
 
@@ -133,6 +139,9 @@ class PedidoController extends Controller
             $pedido->update(['estado' => 'entregado']);
             $request->user()->increment('balance', $incentivo);
         });
+
+        // Disparar evento para badges admin en tiempo real
+        event(new PedidoEntregado($pedido->fresh()));
 
         $pedido->load(['cliente', 'repartidor']);
 
@@ -247,6 +256,9 @@ class PedidoController extends Controller
     if (!$actualizado) {
         return response()->json(['message' => 'Este viaje ya fue aceptado por otro repartidor, o ya tienes uno en curso.'], 409);
     }
+
+    // Disparar evento para badges admin en tiempo real
+    event(new PedidoAceptadoRepartidor($actualizado->fresh()));
 
     ExpoPushService::enviar(
     [$actualizado->cliente->expo_push_token],

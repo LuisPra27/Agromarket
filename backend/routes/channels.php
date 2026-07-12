@@ -23,3 +23,8 @@ Broadcast::channel('repartidores', function (Usuario $usuario) {
 Broadcast::channel('usuario.{usuarioId}', function (Usuario $usuario, int $usuarioId) {
     return $usuario->id === $usuarioId;
 });
+
+// Canal admin para badges de navegación en tiempo real
+Broadcast::channel('admin.pedidos', function (Usuario $usuario) {
+    return $usuario->rol === 'administrador';
+});
