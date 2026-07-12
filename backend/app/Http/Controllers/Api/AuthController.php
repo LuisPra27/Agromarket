@@ -115,34 +115,41 @@ class AuthController extends Controller
 
         $token = $usuario->createToken('mobile')->plainTextToken;
 
-        return response()->json([
-            'token'   => $token,
-            'usuario' => $usuario,
-        ], 201);
-    }
+                return response()->json([
+                    'token'   => $token,
+                    'usuario' => $usuario,
+                ]);
+            }
 
-    public function login(Request $request): JsonResponse
-    {
-        $request->validate([
-            'correo' => 'required|email',
-            'clave' => 'required|string',
-        ]);
+            // Login con email/clave tradicional
+            public function login(Request $request): JsonResponse
+            {
+                $request->validate([
+                    'correo' => 'required|email',
+                    'clave'  => 'required|string',
+                    'expo_push_token' => 'nullable|string', // token push opcional
+                ]);
 
-        $usuario = Usuario::where('correo', $request->correo)->first();
+                $usuario = Usuario::where('correo', $request->correo)->first();
 
-        if (! $usuario || ! Hash::check($request->clave, $usuario->clave)) {
-            throw ValidationException::withMessages([
-                'correo' => ['Las credenciales no son correctas.'],
-            ]);
-        }
+                if (! $usuario || ! Hash::check($request->clave, $usuario->clave)) {
+                    throw ValidationException::withMessages([
+                        'correo' => ['Las credenciales no son correctas.'],
+                    ]);
+                }
 
-        $token = $usuario->createToken('mobile')->plainTextToken;
+                // Actualizar token push si viene del cliente
+                if ($request->filled('expo_push_token')) {
+                    $usuario->update(['expo_push_token' => $request->expo_push_token]);
+                }
 
-        return response()->json([
-            'token'   => $token,
-            'usuario' => $usuario,
-        ]);
-    }
+                $token = $usuario->createToken('mobile')->plainTextToken;
+
+                return response()->json([
+                    'token'   => $token,
+                    'usuario' => $usuario,
+                ]);
+            }
 
     public function logout(Request $request): JsonResponse
     {

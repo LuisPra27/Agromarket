@@ -4,12 +4,10 @@ import { Image as ExpoImage } from 'expo-image';
 import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 import { Colors } from '../constants/colors';
 
-// Misma relación de aspecto que MapaCampus.tsx — debe coincidir siempre con
-// el archivo assets/mapa-campus.png (2923x2162px → 1.352). Si el asset cambia
-// de tamaño, actualiza este número en AMBOS archivos.
-const IMAGE_ASPECT_RATIO = 2923 / 2162;
 
-const MAP_ASSET = require('../../assets/mapa-campus.png');
+const IMAGE_ASPECT_RATIO = 3778 / 3191;
+
+const MAP_ASSET = require('../../assets/mapa-uleam.png');
 
 interface Props {
   pinX: number;

@@ -9,10 +9,9 @@ import { Colors } from '../constants/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Relación de aspecto REAL de assets/mapa-campus.png (ancho / alto).
-// mapa-campus.png mide 2923x2162px → 1.352. Si este archivo cambia de tamaño,
-// hay que actualizar este número (o medirlo en runtime con Image.getSize).
-const IMAGE_ASPECT_RATIO = 2923 / 2162;
+// Relación de aspecto REAL de assets/mapa-uleam.png (ancho / alto).
+// mapa-uleam.png mide 3778x3191px → 1.184.
+const IMAGE_ASPECT_RATIO = 3778 / 3191;
 
 // La caja del modal y la del preview usan EXACTAMENTE esta proporción,
 // así la imagen la llena por completo (sin bandas vacías ni recortes) y el
@@ -20,7 +19,7 @@ const IMAGE_ASPECT_RATIO = 2923 / 2162;
 const MAP_MODAL_WIDTH = SCREEN_WIDTH;
 const MAP_MODAL_HEIGHT = MAP_MODAL_WIDTH / IMAGE_ASPECT_RATIO;
 
-const MAP_ASSET = require('../../assets/mapa-campus.png');
+const MAP_ASSET = require('../../assets/mapa-uleam.png');
 
 // Activa esto mientras depuras el problema del pin. Te va a imprimir en la
 // consola el objeto completo que reporta la librería en cada evento de zoom/pan.
