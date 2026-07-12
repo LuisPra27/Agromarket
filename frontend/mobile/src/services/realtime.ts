@@ -86,3 +86,29 @@ export function subscribeToPedidosRepartidores(
     channel.stopListening('.pedido.listo');
   };
 }
+
+/**
+ * Función para suscribirse a eventos del usuario (aprobación/rechazo repartidor)
+ */
+export function subscribeToUsuarioEvents(
+  usuarioId: number,
+  onRepartidorAprobado: () => void,
+  onRepartidorRechazado: () => void,
+) {
+  const channel = echo.private(`usuario.${usuarioId}`);
+
+  channel.listen('.repartidor.aprobado', () => {
+    console.log('[realtime] 📡 Evento: repartidor.aprobado');
+    onRepartidorAprobado();
+  });
+
+  channel.listen('.repartidor.rechazado', () => {
+    console.log('[realtime] 📡 Evento: repartidor.rechazado');
+    onRepartidorRechazado();
+  });
+
+  return () => {
+    channel.stopListening('.repartidor.aprobado');
+    channel.stopListening('.repartidor.rechazado');
+  };
+}

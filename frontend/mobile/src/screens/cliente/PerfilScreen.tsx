@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Alert, ScrollView, TextInput, ActivityIndicator,
+  Alert, ScrollView, TextInput, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../store/AuthContext';
@@ -13,8 +13,26 @@ export default function PerfilScreen() {
   const navigation = useNavigation<any>();
   const { usuario, logout, actualizarUsuario } = useAuth();
   const [cargando, setCargando] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [facultad, setFacultad] = useState(usuario?.facultad ?? '');
   const [postulando, setPostulando] = useState(false);
+
+  const cargarUsuarioActualizado = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const response = await api.get('/auth/me');
+      actualizarUsuario(response.data);
+    } catch (error) {
+      console.error('Error cargando usuario actualizado:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [actualizarUsuario]);
+
+  // Refrescar al montar la pantalla (cuando el usuario navega a ella)
+  useEffect(() => {
+    cargarUsuarioActualizado();
+  }, [cargarUsuarioActualizado]);
 
   const handleLogout = async () => {
     Alert.alert('Cerrar sesión', '¿Estás seguro?', [
@@ -77,7 +95,13 @@ export default function PerfilScreen() {
   const estadoConfig = estadoRepartidorConfig[usuario?.estado_repartidor ?? 'no_postulado'];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={cargarUsuarioActualizado} />
+      }
+    >
 
       {/* Avatar y nombre */}
       <View style={styles.header}>
