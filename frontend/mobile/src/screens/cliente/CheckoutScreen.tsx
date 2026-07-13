@@ -80,7 +80,7 @@ export default function CheckoutScreen() {
     }
   };
 
-  const confirmarPedidoPayphone = async () => {
+  const confirmarPedidoPayphone = async (tipo: 'boton' | 'cajita') => {
     if (metodo === 'delivery' && !puntoEncuentro.trim()) {
       Alert.alert('Falta el punto de encuentro', 'Por favor indica dónde te encontramos.');
       return;
@@ -103,16 +103,19 @@ export default function CheckoutScreen() {
         }),
       });
 
-      const { pedido, payment_url } = prepareResponse.data;
+      const { pedido, bridge_url, bridge_url_cajita } = prepareResponse.data;
+      const urlAAbrir = tipo === 'cajita' ? bridge_url_cajita : bridge_url;
 
-      if (!payment_url) {
-        throw new Error('Payphone no devolvió una URL de pago.');
+      if (!urlAAbrir) {
+        throw new Error('No se pudo generar el enlace de pago.');
       }
 
-      // 2. Abrimos el navegador del sistema con la página de pago de
-      //    Payphone, y esperamos a que redirija de vuelta a la app.
+      // 2. Abrimos el navegador del sistema con nuestra página puente
+      //    (necesaria porque Payphone exige que la navegación hacia su
+      //    formulario venga de un dominio web real, no de una app), y
+      //    esperamos a que rebote de vuelta a la app.
       const resultado = await WebBrowser.openAuthSessionAsync(
-        payment_url,
+        urlAAbrir,
         PAYPHONE_REDIRECT_URI
       );
 
@@ -125,9 +128,9 @@ export default function CheckoutScreen() {
         return;
       }
 
-      // 3. Payphone agrega "id" y "clientTransactionId" a la URL de retorno.
-      //    Los parseamos a mano (React Native no trae URL/URLSearchParams
-      //    nativamente, evitamos depender de un polyfill extra para esto).
+      // 3. La página puente (/payphone/confirmar) ya confirmó el pago
+      //    server-to-server con Payphone y aprobó el pedido si correspondía.
+      //    Acá solo leemos el resultado que nos rebotó en el deep link.
       const queryString = resultado.url.split('?')[1] ?? '';
       const params = Object.fromEntries(
         queryString.split('&').filter(Boolean).map(pair => {
@@ -135,19 +138,16 @@ export default function CheckoutScreen() {
           return [decodeURIComponent(key), decodeURIComponent(value ?? '')];
         })
       );
-      const id = params.id;
-      const clientTransactionId = params.clientTransactionId;
 
-      if (!id || !clientTransactionId) {
-        throw new Error('No se recibieron los datos de confirmación de Payphone.');
+      if (params.resultado !== 'exito') {
+        Alert.alert(
+          'Pago no aprobado',
+          'Payphone no aprobó el pago. Puedes intentarlo de nuevo desde "Mis Pedidos".'
+        );
+        return;
       }
 
-      // 4. Confirmamos el pago contra el backend (que a su vez valida
-      //    server-to-server contra Payphone, nunca confiamos solo en la URL).
-      await api.post('/pedidos/payphone/confirm', {
-        id: Number(id),
-        clientTransactionId,
-      });
+      const pedidoIdFinal = params.pedido_id || pedido.id;
 
       limpiar();
       Alert.alert('¡Pago confirmado! 🎉', 'Tu pedido ya está en preparación.', [
@@ -156,7 +156,7 @@ export default function CheckoutScreen() {
           onPress: () =>
             navigation.reset({
               index: 0,
-              routes: [{ name: 'SeguimientoPedido', params: { pedidoId: pedido.id } }],
+              routes: [{ name: 'SeguimientoPedido', params: { pedidoId: Number(pedidoIdFinal) } }],
             }),
         },
       ]);
@@ -408,25 +408,49 @@ export default function CheckoutScreen() {
         <Text style={styles.titulo}>💳 Pago con Payphone</Text>
         <Text style={styles.subtitulo}>
           Vas a pagar <Text style={styles.montoDestacado}>${totalConDelivery.toFixed(2)}</Text> con tarjeta
-          a través de Payphone. Se abrirá una pantalla segura para completar el pago.
+          a través de Payphone. Elige cómo prefieres pagar:
         </Text>
+
+        <TouchableOpacity
+          style={[styles.btnConfirmar, cargando && styles.btnDeshabilitado, { marginTop: 16 }]}
+          onPress={() => confirmarPedidoPayphone('boton')}
+          disabled={cargando}
+        >
+          {cargando ? (
+            <ActivityIndicator color={Colors.blanco} />
+          ) : (
+            <Text style={styles.btnConfirmarTexto}>Pagar con Botón Payphone</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.btnSecundario, cargando && styles.btnDeshabilitado]}
+          onPress={() => confirmarPedidoPayphone('cajita')}
+          disabled={cargando}
+        >
+          {cargando ? (
+            <ActivityIndicator color={Colors.verde} />
+          ) : (
+            <Text style={styles.btnSecundarioTexto}>Pagar con Cajita de Pagos</Text>
+          )}
+        </TouchableOpacity>
       </View>
       )}
 
-      {/* Botón confirmar */}
+      {/* Botón confirmar (solo transferencia; Payphone tiene sus propios botones arriba) */}
+      {metodoPago === 'transferencia' && (
       <TouchableOpacity
         style={[styles.btnConfirmar, cargando && styles.btnDeshabilitado]}
-        onPress={metodoPago === 'payphone' ? confirmarPedidoPayphone : confirmarPedido}
+        onPress={confirmarPedido}
         disabled={cargando}
       >
         {cargando ? (
           <ActivityIndicator color={Colors.blanco} />
         ) : (
-          <Text style={styles.btnConfirmarTexto}>
-            {metodoPago === 'payphone' ? 'Pagar con Payphone' : 'Confirmar pedido'}
-          </Text>
+          <Text style={styles.btnConfirmarTexto}>Confirmar pedido</Text>
         )}
       </TouchableOpacity>
+      )}
 
     </ScrollView>
   );
@@ -515,6 +539,15 @@ const styles = StyleSheet.create({
   },
   btnDeshabilitado: { opacity: 0.6 },
   btnConfirmarTexto: { color: Colors.blanco, fontSize: 16, fontWeight: '700' },
+  btnSecundario: {
+    borderWidth: 2,
+    borderColor: Colors.verde,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  btnSecundarioTexto: { color: Colors.verde, fontSize: 15, fontWeight: '700' },
 
   cuentaContainer: {
   backgroundColor: Colors.fondo,

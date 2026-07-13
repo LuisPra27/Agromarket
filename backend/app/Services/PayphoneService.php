@@ -36,9 +36,9 @@ class PayphoneService
                 'currency' => 'USD',
                 'reference' => $referencia,
                 'clientTransactionId' => $clientTransactionId,
-                // Deep link de la app (mismo esquema que usamos para el login
-                // de Microsoft); Payphone redirige acá al terminar el pago.
-                'responseUrl' => 'agromarket://payphone-redirect',
+                // Payphone exige https:// real; usamos la ruta puente que
+                // confirma el pago y rebota al deep link de la app (routes/web.php).
+                'responseUrl' => config('app.url').'/payphone/confirmar',
                 'storeId' => config('services.payphone.store_id'),
             ]);
 

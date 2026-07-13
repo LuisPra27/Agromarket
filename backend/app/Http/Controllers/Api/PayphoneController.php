@@ -7,8 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Configuracion;
 use App\Models\Pedido;
 use App\Models\Producto;
+use App\Services\PayphoneConfirmacionService;
 use App\Services\PayphoneService;
-use App\Services\PedidoAprobacionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -79,19 +79,29 @@ class PayphoneController extends Controller
             "Pedido Agromarket #{$pedido->id}"
         );
 
+        $urlPago = $respuestaPayphone['payWithCard'] ?? $respuestaPayphone['payWithPayPhone'] ?? null;
+
+        if (!$urlPago) {
+            $pedido->update(['estado' => 'rechazado']);
+            return response()->json(['message' => 'Payphone no devolvió una URL de pago.'], 502);
+        }
+
+        $pedido->update(['payphone_pay_url' => $urlPago]);
+
         event(new PedidoCreado($pedido));
 
         return response()->json([
             'pedido' => $pedido->load('detalles.producto'),
-            'payment_url' => $respuestaPayphone['payWithCard'] ?? $respuestaPayphone['payWithPayPhone'] ?? null,
+            // La app debe abrir ESTAS urls (nuestras páginas puente), no las
+            // de Payphone directamente: Payphone exige que la navegación
+            // hacia su formulario venga desde el dominio registrado.
+            'bridge_url' => url("/payphone/bridge/{$pedido->payphone_client_transaction_id}"),
+            'bridge_url_cajita' => url("/payphone/cajita/{$pedido->payphone_client_transaction_id}"),
         ], 201);
     }
 
-    // El móvil llama esto al volver del navegador de pago, con los parámetros
-    // "id" y "clientTransactionId" que Payphone agrega al redirect. Confirmamos
-    // contra la API de Payphone (nunca confiamos solo en el redirect) y, si el
-    // pago fue aprobado, reutilizamos el mismo servicio que usa la aprobación
-    // manual en Filament para reducir stock y generar el QR.
+    // El móvil puede llamar esto como respaldo/verificación (la confirmación
+    // "real" ya ocurre en la página puente web cuando Payphone redirige ahí).
     public function confirm(Request $request): JsonResponse
     {
         $request->validate([
@@ -107,43 +117,28 @@ class PayphoneController extends Controller
             return response()->json(['message' => 'Pedido no encontrado.'], 404);
         }
 
-        if ($pedido->estado !== 'pendiente_pago') {
-            return response()->json([
+        $resultado = PayphoneConfirmacionService::confirmar(
+            $request->clientTransactionId,
+            (int) $request->id
+        );
+
+        return match ($resultado['resultado']) {
+            PayphoneConfirmacionService::OK => response()->json([
+                'message' => 'Pago confirmado. Tu pedido ya está en preparación.',
+                'pedido' => $resultado['pedido'],
+            ]),
+            PayphoneConfirmacionService::YA_PROCESADO => response()->json([
                 'message' => 'Este pedido ya fue procesado.',
-                'pedido' => $pedido,
-            ]);
-        }
-
-        $resultado = PayphoneService::confirm((int) $request->id, $request->clientTransactionId);
-
-        if (($resultado['transactionStatus'] ?? null) !== 'Approved') {
-            $pedido->update(['estado' => 'rechazado']);
-
-            return response()->json([
-                'message' => 'El pago no fue aprobado por Payphone.',
-                'pedido' => $pedido,
-            ], 422);
-        }
-
-        $pedido->update(['payphone_transaction_id' => (string) $request->id]);
-
-        try {
-            PedidoAprobacionService::aprobar($pedido);
-        } catch (\Throwable $e) {
-            // El pago sí se cobró pero ya no hay stock (caso raro: se agotó
-            // entre el prepare y el confirm). Dejamos rastro claro para que
-            // el admin resuelva manualmente el reembolso.
-            $pedido->update(['estado' => 'pendiente_validacion']);
-
-            return response()->json([
+                'pedido' => $resultado['pedido'],
+            ]),
+            PayphoneConfirmacionService::SIN_STOCK => response()->json([
                 'message' => 'El pago se procesó pero ya no hay stock suficiente. Un administrador revisará tu pedido.',
-                'pedido' => $pedido->fresh(),
-            ], 409);
-        }
-
-        return response()->json([
-            'message' => 'Pago confirmado. Tu pedido ya está en preparación.',
-            'pedido' => $pedido->fresh()->load('detalles.producto'),
-        ]);
+                'pedido' => $resultado['pedido'],
+            ], 409),
+            default => response()->json([
+                'message' => 'El pago no fue aprobado por Payphone.',
+                'pedido' => $resultado['pedido'],
+            ], 422),
+        };
     }
 }

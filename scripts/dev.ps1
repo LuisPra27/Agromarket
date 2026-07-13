@@ -1,5 +1,6 @@
 param(
-    [string]$Command = "start"
+    [string]$Command = "start",
+    [string]$NgrokUrl = ""
 )
 
 $ScriptDir = $PSScriptRoot
@@ -26,10 +27,6 @@ function Get-LocalIP {
         return $null
     }
 
-    if ($ips.Count -eq 1) {
-        return $ips[0].IPAddress
-    }
-
     Write-Host ""
     Write-Host "IPs disponibles:" -ForegroundColor Cyan
 
@@ -37,12 +34,25 @@ function Get-LocalIP {
         Write-Host ("  [{0}] {1} - {2}" -f ($i + 1), $ips[$i].IPAddress, $ips[$i].InterfaceAlias)
     }
 
-    $seleccion = Read-Host "Elige el numero de la IP correcta"
+    # Opción ngrok al final
+    $ngrokIndex = $ips.Count + 1
+    Write-Host ("  [{0}] ngrok (ingresar URL manualmente)" -f $ngrokIndex)
+
+    $seleccion = Read-Host "Elige el numero de la IP/opcion"
 
     try {
         $index = [int]$seleccion - 1
         if ($index -ge 0 -and $index -lt $ips.Count) {
             return $ips[$index].IPAddress
+        }
+        elseif ($index -eq $ngrokIndex - 1) {
+            # Usuario eligió ngrok
+            $url = Read-Host "Ingresa la URL ngrok (ej: https://xxxx.ngrok-free.app)"
+            if ($url -match '^https?://') {
+                return $url
+            }
+            Write-Host "URL invalida. Debe empezar con http:// o https://" -ForegroundColor Red
+            return $null
         }
     }
     catch { }
@@ -50,13 +60,25 @@ function Get-LocalIP {
     Write-Host "Seleccion invalida." -ForegroundColor Red
     return $null
 }
-function Update-EnvIP {
 
-    $ip = Get-LocalIP
+function Update-EnvIP {
+    param([string]$NgrokUrlOverride = "")
+
+    $ip = $NgrokUrlOverride
+
+    if (-not $ip) {
+        $ip = Get-LocalIP
+    }
 
     if (!$ip) {
         Write-Host "No se pudo detectar la IP." -ForegroundColor Red
         return $null
+    }
+
+    # Si es URL ngrok, extraer solo el host para WS_HOST
+    $wsHost = $ip
+    if ($ip -match '^https?://([^/]+)') {
+        $wsHost = $matches[1]
     }
 
     # Leer .env existente y preservar otras variables (ej. MICROSOFT_CLIENT_ID)
@@ -69,14 +91,18 @@ function Update-EnvIP {
         }
     }
 
-    # Actualizar solo las IPs
-    $existing['EXPO_PUBLIC_API_URL'] = "http://$($ip):8000"
-    $existing['EXPO_PUBLIC_WS_HOST'] = $ip
+    # Actualizar las URLs
+    if ($ip -match '^https?://') {
+        $existing['EXPO_PUBLIC_API_URL'] = $ip
+    } else {
+        $existing['EXPO_PUBLIC_API_URL'] = "http://$($ip):8000"
+    }
+    $existing['EXPO_PUBLIC_WS_HOST'] = $wsHost
 
     # Escribir de vuelta conservando todo
     $existing.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" } | Set-Content $EnvPath -Encoding UTF8
 
-    Write-Host "IP detectada y actualizada: $ip" -ForegroundColor Green
+    Write-Host "IP/URL detectada y actualizada: $ip" -ForegroundColor Green
 
     return $ip
 }
@@ -90,7 +116,7 @@ switch ($Command) {
         Write-Host ""
         Write-Host "[0/3] Detectando IP..." -ForegroundColor Cyan
 
-        $ip = Update-EnvIP
+        $ip = Update-EnvIP -NgrokUrlOverride $NgrokUrl
 
         if ($ip) {
             Write-Host "Backend: http://$($ip):8000" -ForegroundColor Green
@@ -142,7 +168,6 @@ switch ($Command) {
         Write-Host "Apagando entorno..." -ForegroundColor Red
 
         & "$ScriptDir\backend.ps1" stop
-
         Set-Location $RootPath
 
         docker-compose down
@@ -152,7 +177,7 @@ switch ($Command) {
 
     "set-ip" {
 
-        $ip = Update-EnvIP
+        $ip = Update-EnvIP -NgrokUrlOverride $NgrokUrl
 
         if ($ip) {
 
@@ -173,7 +198,7 @@ switch ($Command) {
         $ip = Get-LocalIP
 
         if ($ip) {
-            Write-Host "IP: $ip" -ForegroundColor Cyan
+            Write-Host "IP local: $ip" -ForegroundColor Cyan
             Write-Host "Backend : http://$($ip):8000"
             Write-Host "WebSocket: ws://$($ip):8080"
         }
@@ -182,14 +207,39 @@ switch ($Command) {
         }
     }
 
+    "ngrok" {
+        param([string]$Url = "")
+
+        if (-not $Url) {
+            Write-Host "Uso: .\scripts\dev.ps1 ngrok https://xxxx.ngrok-free.app" -ForegroundColor Yellow
+            return
+        }
+
+        $ip = Update-EnvIP -NgrokUrlOverride $Url
+
+        if ($ip) {
+            Write-Host ""
+            Write-Host ".env actualizado con ngrok:" -ForegroundColor Green
+            Get-Content $EnvPath
+            Write-Host ""
+            Write-Host "IMPORTANTE: El backend debe ser accesible en esa URL ngrok." -ForegroundColor Yellow
+            Write-Host "  ngrok http 8000" -ForegroundColor Cyan
+            Write-Host "  (corre en otra terminal mientras el backend esta arriba)" -ForegroundColor Gray
+        }
+    }
+
     default {
 
         Write-Host ""
-        Write-Host "Uso: .\scripts\dev.ps1 <comando>"
+        Write-Host "Uso: .\scripts\dev.ps1 <comando> [opciones]"
         Write-Host ""
-        Write-Host "start    Levanta todo"
-        Write-Host "stop     Apaga todo"
-        Write-Host "set-ip   Actualiza el .env"
-        Write-Host "ip       Muestra la IP"
+        Write-Host "start          Levanta todo (Postgres + Backend + Reverb + Expo)"
+        Write-Host "                 Opcional: .\scripts\dev.ps1 start -NgrokUrl https://xxxx.ngrok-free.app"
+        Write-Host "stop           Apaga todo"
+        Write-Host "set-ip         Actualiza .env con IP local detectada (menu interactivo)"
+        Write-Host "                 Opcional: .\scripts\dev.ps1 set-ip -NgrokUrl https://xxxx.ngrok-free.app"
+        Write-Host "ip             Muestra la IP local detectada"
+        Write-Host "ngrok          Actualiza .env con URL ngrok (para PayPhone/webhooks)"
+        Write-Host "                 .\scripts\dev.ps1 ngrok https://xxxx.ngrok-free.app"
     }
 }

@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'comprobante_pago_url',
     'payphone_client_transaction_id',
     'payphone_transaction_id',
+    'payphone_pay_url',
     'codigo_qr_hash',
     'punto_encuentro',
     'pin_x',
