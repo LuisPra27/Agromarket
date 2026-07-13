@@ -4,6 +4,7 @@ import {
   Alert, ActivityIndicator, Image, TextInput, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as WebBrowser from 'expo-web-browser';
 import { useCarrito } from '../../store/CarritoContext';
 import { useAuth } from '../../store/AuthContext';
 import api from '../../services/api';
@@ -12,6 +13,9 @@ import { useNavigation } from '@react-navigation/native';
 import MapaCampus from '../../components/MapaCampus';
 
 type MetodoEntrega = 'retiro' | 'delivery';
+type MetodoPago = 'transferencia' | 'payphone';
+
+const PAYPHONE_REDIRECT_URI = 'agromarket://payphone-redirect';
 
 export default function CheckoutScreen() {
   const { items, total, limpiar } = useCarrito();
@@ -19,6 +23,7 @@ export default function CheckoutScreen() {
   const navigation = useNavigation<any>();
 
   const [metodo, setMetodo] = useState<MetodoEntrega>('retiro');
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>('transferencia');
   const [puntoEncuentro, setPuntoEncuentro] = useState('');
   const [comprobante, setComprobante] = useState<any>(null);
   const [cargando, setCargando] = useState(false);
@@ -72,6 +77,94 @@ export default function CheckoutScreen() {
 
     if (!resultado.canceled && resultado.assets[0]) {
       setComprobante(resultado.assets[0]);
+    }
+  };
+
+  const confirmarPedidoPayphone = async () => {
+    if (metodo === 'delivery' && !puntoEncuentro.trim()) {
+      Alert.alert('Falta el punto de encuentro', 'Por favor indica dónde te encontramos.');
+      return;
+    }
+
+    setCargando(true);
+    try {
+      // 1. Creamos el pedido (sin comprobante, estado pendiente_pago) y
+      //    preparamos la transacción en Payphone.
+      const prepareResponse = await api.post('/pedidos/payphone/prepare', {
+        metodo_entrega: metodo,
+        items: items.map(item => ({
+          producto_id: item.producto.id,
+          cantidad: item.cantidad,
+        })),
+        ...(metodo === 'delivery' && {
+          punto_encuentro: puntoEncuentro,
+          pin_x: pinX,
+          pin_y: pinY,
+        }),
+      });
+
+      const { pedido, payment_url } = prepareResponse.data;
+
+      if (!payment_url) {
+        throw new Error('Payphone no devolvió una URL de pago.');
+      }
+
+      // 2. Abrimos el navegador del sistema con la página de pago de
+      //    Payphone, y esperamos a que redirija de vuelta a la app.
+      const resultado = await WebBrowser.openAuthSessionAsync(
+        payment_url,
+        PAYPHONE_REDIRECT_URI
+      );
+
+      if (resultado.type !== 'success' || !resultado.url) {
+        // El usuario canceló o cerró el navegador antes de terminar.
+        Alert.alert(
+          'Pago no completado',
+          'No se completó el pago. Puedes intentarlo de nuevo desde "Mis Pedidos".'
+        );
+        return;
+      }
+
+      // 3. Payphone agrega "id" y "clientTransactionId" a la URL de retorno.
+      //    Los parseamos a mano (React Native no trae URL/URLSearchParams
+      //    nativamente, evitamos depender de un polyfill extra para esto).
+      const queryString = resultado.url.split('?')[1] ?? '';
+      const params = Object.fromEntries(
+        queryString.split('&').filter(Boolean).map(pair => {
+          const [key, value] = pair.split('=');
+          return [decodeURIComponent(key), decodeURIComponent(value ?? '')];
+        })
+      );
+      const id = params.id;
+      const clientTransactionId = params.clientTransactionId;
+
+      if (!id || !clientTransactionId) {
+        throw new Error('No se recibieron los datos de confirmación de Payphone.');
+      }
+
+      // 4. Confirmamos el pago contra el backend (que a su vez valida
+      //    server-to-server contra Payphone, nunca confiamos solo en la URL).
+      await api.post('/pedidos/payphone/confirm', {
+        id: Number(id),
+        clientTransactionId,
+      });
+
+      limpiar();
+      Alert.alert('¡Pago confirmado! 🎉', 'Tu pedido ya está en preparación.', [
+        {
+          text: 'Ver mi pedido',
+          onPress: () =>
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'SeguimientoPedido', params: { pedidoId: pedido.id } }],
+            }),
+        },
+      ]);
+    } catch (error: any) {
+      const mensaje = error.response?.data?.message || error.message || 'Error al procesar el pago.';
+      Alert.alert('Error', mensaje);
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -220,7 +313,32 @@ export default function CheckoutScreen() {
       )}
       </View>
 
+      {/* Método de pago */}
+      <View style={styles.seccion}>
+        <Text style={styles.titulo}>Método de pago</Text>
+        <View style={styles.metodoRow}>
+          <TouchableOpacity
+            style={[styles.metodoBtn, metodoPago === 'transferencia' && styles.metodoBtnActivo]}
+            onPress={() => setMetodoPago('transferencia')}
+          >
+            <Text style={[styles.metodoBtnTexto, metodoPago === 'transferencia' && styles.metodoBtnTextoActivo]}>
+              🏦 Transferencia
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.metodoBtn, metodoPago === 'payphone' && styles.metodoBtnActivo]}
+            onPress={() => setMetodoPago('payphone')}
+          >
+            <Text style={[styles.metodoBtnTexto, metodoPago === 'payphone' && styles.metodoBtnTextoActivo]}>
+              💳 Payphone
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Datos para transferencia */}
+      {metodoPago === 'transferencia' && (
+      <>
       <View style={styles.seccion}>
         <Text style={styles.titulo}>💳 Datos para la transferencia</Text>
         <Text style={styles.subtitulo}>
@@ -281,17 +399,32 @@ export default function CheckoutScreen() {
           </View>
         )}
       </View>
+      </>
+      )}
+
+      {/* Pago con Payphone */}
+      {metodoPago === 'payphone' && (
+      <View style={styles.seccion}>
+        <Text style={styles.titulo}>💳 Pago con Payphone</Text>
+        <Text style={styles.subtitulo}>
+          Vas a pagar <Text style={styles.montoDestacado}>${totalConDelivery.toFixed(2)}</Text> con tarjeta
+          a través de Payphone. Se abrirá una pantalla segura para completar el pago.
+        </Text>
+      </View>
+      )}
 
       {/* Botón confirmar */}
       <TouchableOpacity
         style={[styles.btnConfirmar, cargando && styles.btnDeshabilitado]}
-        onPress={confirmarPedido}
+        onPress={metodoPago === 'payphone' ? confirmarPedidoPayphone : confirmarPedido}
         disabled={cargando}
       >
         {cargando ? (
           <ActivityIndicator color={Colors.blanco} />
         ) : (
-          <Text style={styles.btnConfirmarTexto}>Confirmar pedido</Text>
+          <Text style={styles.btnConfirmarTexto}>
+            {metodoPago === 'payphone' ? 'Pagar con Payphone' : 'Confirmar pedido'}
+          </Text>
         )}
       </TouchableOpacity>
 

@@ -142,27 +142,7 @@ class PedidoResource extends Resource
                     ->modalDescription('Esta acción generará el código QR y reducirá el stock. ¿Confirmas?')
                     ->visible(fn (Pedido $record): bool => $record->estado === 'pendiente_validacion')
                     ->action(function (Pedido $record) {
-                        DB::transaction(function () use ($record) {
-                            foreach ($record->detalles as $detalle) {
-                                $producto = $detalle->producto;
-                                if ($producto->stock < $detalle->cantidad) {
-                                    throw new \Exception("Stock insuficiente para {$producto->nombre}.");
-                                }
-                                $producto->decrement('stock', $detalle->cantidad);
-                            }
-                            $record->update([
-                                'estado' => 'preparando',
-                                'codigo_qr_hash' => (string) Str::uuid(),
-                            ]);
-                        });
-                        // Disparar evento para badges admin en tiempo real
-                        event(new PedidoAprobado($record->fresh()));
-                        ExpoPushService::enviar(
-                            [$record->cliente->expo_push_token],
-                            'Tu pedido está listo 🎉',
-                            "Pedido aprobado. Ya puedes ver tu código QR en la app.",
-                            ['tipo' => 'pedido_aprobado', 'pedido_id' => $record->id]
-                        );
+                        \App\Services\PedidoAprobacionService::aprobar($record);
 
                         Notification::make()->title('Pedido aprobado')->success()->send();
                     }),
@@ -175,7 +155,7 @@ class PedidoResource extends Resource
                     ->visible(fn (Pedido $record): bool => $record->estado === 'pendiente_validacion')
                     ->action(function (Pedido $record) {
                         $record->update(['estado' => 'rechazado']);
-                        
+
                         // Disparar evento para badges admin en tiempo real
                         event(new PedidoRechazado($record->fresh()));
 
