@@ -95,8 +95,12 @@ class PayphoneController extends Controller
             // La app debe abrir ESTAS urls (nuestras páginas puente), no las
             // de Payphone directamente: Payphone exige que la navegación
             // hacia su formulario venga desde el dominio registrado.
-            'bridge_url' => url("/payphone/bridge/{$pedido->payphone_client_transaction_id}"),
-            'bridge_url_cajita' => url("/payphone/cajita/{$pedido->payphone_client_transaction_id}"),
+            // Igual que en PayphoneService: usamos config('app.url') a propósito
+            // en vez de url(), porque url() arma la URL con el host de la
+            // petición entrante (ej. tu IP local de WiFi) en vez de tu
+            // APP_URL/dominio de ngrok registrado en Payphone.
+            'bridge_url' => config('app.url')."/payphone/bridge/{$pedido->payphone_client_transaction_id}",
+            'bridge_url_cajita' => config('app.url')."/payphone/cajita/{$pedido->payphone_client_transaction_id}",
         ], 201);
     }
 

@@ -208,14 +208,18 @@ switch ($Command) {
     }
 
     "ngrok" {
-        param([string]$Url = "")
 
-        if (-not $Url) {
+        # FIX: antes había un "param([string]$Url = ...)" acá adentro, que
+        # nunca recibe nada (los bloques de un switch no son funciones), así
+        # que $Url siempre quedaba vacío. El valor real que pasas en la
+        # terminal ya está disponible como $NgrokUrl (declarado arriba, en
+        # el param() del script), así que lo usamos directo.
+        if (-not $NgrokUrl) {
             Write-Host "Uso: .\scripts\dev.ps1 ngrok https://xxxx.ngrok-free.app" -ForegroundColor Yellow
             return
         }
 
-        $ip = Update-EnvIP -NgrokUrlOverride $Url
+        $ip = Update-EnvIP -NgrokUrlOverride $NgrokUrl
 
         if ($ip) {
             Write-Host ""

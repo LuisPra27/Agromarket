@@ -30,11 +30,15 @@
         // A diferencia del Botón de Pago, la Cajita NO acepta "responseUrl"
         // por parámetro — usa la "URL de Respuesta" que configuraste en el
         // portal de Payphone Developer para esta app (debe ser
-        // {{ url('/payphone/confirmar') }}).
+        // {{ config('app.url') }}/payphone/confirmar).
+        //
+        // Usamos un clientTransactionId con sufijo "-cajita" porque el
+        // Botón de Pago ya reservó el UUID base del pedido al llamar a
+        // Prepare; Payphone no permite dos transacciones con el mismo id.
         window.addEventListener('DOMContentLoaded', () => {
             new PPaymentButtonBox({
                 token: '{{ $token }}',
-                clientTransactionId: '{{ $pedido->payphone_client_transaction_id }}',
+                clientTransactionId: '{{ $pedido->payphone_client_transaction_id }}-cajita',
                 amount: {{ $montoCentavos }},
                 amountWithoutTax: {{ $montoCentavos }},
                 currency: 'USD',

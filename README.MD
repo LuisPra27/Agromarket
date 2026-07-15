@@ -1,6 +1,6 @@
 # AGROMARKET FCVT — MVP
 
-E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (estudiantes repartidores) operando dentro del campus de la ULEAM (Facultad de Ciencias Veterinarias y Tecnológicas). Funciona bajo una política estricta de **Cero Efectivo** y validación de entregas mediante **escaneo de códigos QR**.
+E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (estudiantes repartidores) operando dentro del campus de la ULEAM (Facultad de Ciencias de la Vida y Tecnológia). Funciona bajo una política estricta de **Cero Efectivo** y validación de entregas mediante **escaneo de códigos QR**.
 
 ## Stack Tecnológico
 
