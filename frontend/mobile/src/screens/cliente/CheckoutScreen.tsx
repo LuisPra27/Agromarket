@@ -4,6 +4,7 @@ import {
   Alert, ActivityIndicator, Image, TextInput, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as WebBrowser from 'expo-web-browser';
 import { useCarrito } from '../../store/CarritoContext';
 import { useAuth } from '../../store/AuthContext';
 import api from '../../services/api';
@@ -12,6 +13,9 @@ import { useNavigation } from '@react-navigation/native';
 import MapaCampus from '../../components/MapaCampus';
 
 type MetodoEntrega = 'retiro' | 'delivery';
+type MetodoPago = 'transferencia' | 'payphone';
+
+const PAYPHONE_REDIRECT_URI = 'agromarket://payphone-redirect';
 
 export default function CheckoutScreen() {
   const { items, total, limpiar } = useCarrito();
@@ -19,6 +23,7 @@ export default function CheckoutScreen() {
   const navigation = useNavigation<any>();
 
   const [metodo, setMetodo] = useState<MetodoEntrega>('retiro');
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>('transferencia');
   const [puntoEncuentro, setPuntoEncuentro] = useState('');
   const [comprobante, setComprobante] = useState<any>(null);
   const [cargando, setCargando] = useState(false);
@@ -72,6 +77,94 @@ export default function CheckoutScreen() {
 
     if (!resultado.canceled && resultado.assets[0]) {
       setComprobante(resultado.assets[0]);
+    }
+  };
+
+  const confirmarPedidoPayphone = async (tipo: 'boton' | 'cajita') => {
+    if (metodo === 'delivery' && !puntoEncuentro.trim()) {
+      Alert.alert('Falta el punto de encuentro', 'Por favor indica dónde te encontramos.');
+      return;
+    }
+
+    setCargando(true);
+    try {
+      // 1. Creamos el pedido (sin comprobante, estado pendiente_pago) y
+      //    preparamos la transacción en Payphone.
+      const prepareResponse = await api.post('/pedidos/payphone/prepare', {
+        metodo_entrega: metodo,
+        items: items.map(item => ({
+          producto_id: item.producto.id,
+          cantidad: item.cantidad,
+        })),
+        ...(metodo === 'delivery' && {
+          punto_encuentro: puntoEncuentro,
+          pin_x: pinX,
+          pin_y: pinY,
+        }),
+      });
+
+      const { pedido, bridge_url, bridge_url_cajita } = prepareResponse.data;
+      const urlAAbrir = tipo === 'cajita' ? bridge_url_cajita : bridge_url;
+
+      if (!urlAAbrir) {
+        throw new Error('No se pudo generar el enlace de pago.');
+      }
+
+      // 2. Abrimos el navegador del sistema con nuestra página puente
+      //    (necesaria porque Payphone exige que la navegación hacia su
+      //    formulario venga de un dominio web real, no de una app), y
+      //    esperamos a que rebote de vuelta a la app.
+      const resultado = await WebBrowser.openAuthSessionAsync(
+        urlAAbrir,
+        PAYPHONE_REDIRECT_URI
+      );
+
+      if (resultado.type !== 'success' || !resultado.url) {
+        // El usuario canceló o cerró el navegador antes de terminar.
+        Alert.alert(
+          'Pago no completado',
+          'No se completó el pago. Puedes intentarlo de nuevo desde "Mis Pedidos".'
+        );
+        return;
+      }
+
+      // 3. La página puente (/payphone/confirmar) ya confirmó el pago
+      //    server-to-server con Payphone y aprobó el pedido si correspondía.
+      //    Acá solo leemos el resultado que nos rebotó en el deep link.
+      const queryString = resultado.url.split('?')[1] ?? '';
+      const params = Object.fromEntries(
+        queryString.split('&').filter(Boolean).map(pair => {
+          const [key, value] = pair.split('=');
+          return [decodeURIComponent(key), decodeURIComponent(value ?? '')];
+        })
+      );
+
+      if (params.resultado !== 'exito') {
+        Alert.alert(
+          'Pago no aprobado',
+          'Payphone no aprobó el pago. Puedes intentarlo de nuevo desde "Mis Pedidos".'
+        );
+        return;
+      }
+
+      const pedidoIdFinal = params.pedido_id || pedido.id;
+
+      limpiar();
+      Alert.alert('¡Pago confirmado! 🎉', 'Tu pedido ya está en preparación.', [
+        {
+          text: 'Ver mi pedido',
+          onPress: () =>
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'SeguimientoPedido', params: { pedidoId: Number(pedidoIdFinal) } }],
+            }),
+        },
+      ]);
+    } catch (error: any) {
+      const mensaje = error.response?.data?.message || error.message || 'Error al procesar el pago.';
+      Alert.alert('Error', mensaje);
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -220,7 +313,32 @@ export default function CheckoutScreen() {
       )}
       </View>
 
+      {/* Método de pago */}
+      <View style={styles.seccion}>
+        <Text style={styles.titulo}>Método de pago</Text>
+        <View style={styles.metodoRow}>
+          <TouchableOpacity
+            style={[styles.metodoBtn, metodoPago === 'transferencia' && styles.metodoBtnActivo]}
+            onPress={() => setMetodoPago('transferencia')}
+          >
+            <Text style={[styles.metodoBtnTexto, metodoPago === 'transferencia' && styles.metodoBtnTextoActivo]}>
+              🏦 Transferencia
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.metodoBtn, metodoPago === 'payphone' && styles.metodoBtnActivo]}
+            onPress={() => setMetodoPago('payphone')}
+          >
+            <Text style={[styles.metodoBtnTexto, metodoPago === 'payphone' && styles.metodoBtnTextoActivo]}>
+              💳 Payphone
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Datos para transferencia */}
+      {metodoPago === 'transferencia' && (
+      <>
       <View style={styles.seccion}>
         <Text style={styles.titulo}>💳 Datos para la transferencia</Text>
         <Text style={styles.subtitulo}>
@@ -281,8 +399,46 @@ export default function CheckoutScreen() {
           </View>
         )}
       </View>
+      </>
+      )}
 
-      {/* Botón confirmar */}
+      {/* Pago con Payphone */}
+      {metodoPago === 'payphone' && (
+      <View style={styles.seccion}>
+        <Text style={styles.titulo}>💳 Pago con Payphone</Text>
+        <Text style={styles.subtitulo}>
+          Vas a pagar <Text style={styles.montoDestacado}>${totalConDelivery.toFixed(2)}</Text> con tarjeta
+          a través de Payphone. Elige cómo prefieres pagar:
+        </Text>
+
+        <TouchableOpacity
+          style={[styles.btnConfirmar, cargando && styles.btnDeshabilitado, { marginTop: 16 }]}
+          onPress={() => confirmarPedidoPayphone('boton')}
+          disabled={cargando}
+        >
+          {cargando ? (
+            <ActivityIndicator color={Colors.blanco} />
+          ) : (
+            <Text style={styles.btnConfirmarTexto}>Pagar con Botón Payphone</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.btnSecundario, cargando && styles.btnDeshabilitado]}
+          onPress={() => confirmarPedidoPayphone('cajita')}
+          disabled={cargando}
+        >
+          {cargando ? (
+            <ActivityIndicator color={Colors.verde} />
+          ) : (
+            <Text style={styles.btnSecundarioTexto}>Pagar con Cajita de Pagos</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+      )}
+
+      {/* Botón confirmar (solo transferencia; Payphone tiene sus propios botones arriba) */}
+      {metodoPago === 'transferencia' && (
       <TouchableOpacity
         style={[styles.btnConfirmar, cargando && styles.btnDeshabilitado]}
         onPress={confirmarPedido}
@@ -294,6 +450,7 @@ export default function CheckoutScreen() {
           <Text style={styles.btnConfirmarTexto}>Confirmar pedido</Text>
         )}
       </TouchableOpacity>
+      )}
 
     </ScrollView>
   );
@@ -382,6 +539,15 @@ const styles = StyleSheet.create({
   },
   btnDeshabilitado: { opacity: 0.6 },
   btnConfirmarTexto: { color: Colors.blanco, fontSize: 16, fontWeight: '700' },
+  btnSecundario: {
+    borderWidth: 2,
+    borderColor: Colors.verde,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  btnSecundarioTexto: { color: Colors.verde, fontSize: 15, fontWeight: '700' },
 
   cuentaContainer: {
   backgroundColor: Colors.fondo,

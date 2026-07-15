@@ -12,7 +12,7 @@ if (typeof Pusher !== 'function') {
   );
 }
 
-const FALLBACK_WS_HOST = '192.168.100.13';
+const FALLBACK_WS_HOST = '10.72.137.18';
 
 if (!process.env.EXPO_PUBLIC_WS_HOST) {
   // Mismo problema que con EXPO_PUBLIC_API_URL: si ves esto en un build

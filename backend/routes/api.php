@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\ProductoController;
 use App\Http\Controllers\Api\PedidoController;
+use App\Http\Controllers\Api\PayphoneController;
 use Illuminate\Support\Facades\Route;
 
 // Rutas públicas
@@ -45,6 +46,10 @@ Route::middleware('auth:usuario')->group(function () {
     Route::get('pedidos', [PedidoController::class, 'index']);
     Route::post('pedidos', [PedidoController::class, 'store']);
     Route::get('pedidos/{pedido}', [PedidoController::class, 'show']);
+
+    // Pago con Payphone
+    Route::post('pedidos/payphone/prepare', [PayphoneController::class, 'prepare']);
+    Route::post('pedidos/payphone/confirm', [PayphoneController::class, 'confirm']);
 
     // Repartidor
     Route::get('repartidor/disponibles', [PedidoController::class, 'disponibles']);
