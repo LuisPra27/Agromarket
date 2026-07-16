@@ -1,5 +1,6 @@
+# Titulo de Tesis 
+Desarrollo de una aplicación móvil nativa Android para la oferta, venta y entrega de productos en los predios de la Uleam: caso Agromarket FCVT.
 # AGROMARKET FCVT — MVP
-
 E-commerce de "Vendedor Único" con sistema de logística colaborativa interna (estudiantes repartidores) operando dentro del campus de la ULEAM (Facultad de Ciencias de la Vida y Tecnológia). Funciona bajo una política estricta de **Cero Efectivo** y validación de entregas mediante **escaneo de códigos QR**.
 
 ## Stack Tecnológico
