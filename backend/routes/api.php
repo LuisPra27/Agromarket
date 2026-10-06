@@ -21,6 +21,12 @@ Route::get('configuraciones/publicas', function () {
         ->pluck('valor', 'clave');
     return response()->json($configs);
 });
+
+// Lista de facultades del campus. Pública a propósito: no es información
+// sensible y así el selector funciona aunque el token haya expirado.
+// Fuente única; el móvil ya no mantiene su propia copia.
+Route::get('facultades', fn () => response()->json(AuthController::FACULTADES));
+
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);

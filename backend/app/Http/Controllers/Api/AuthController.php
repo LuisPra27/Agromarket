@@ -184,9 +184,11 @@ class AuthController extends Controller
     }
 
     // Facultades del campus principal de Manta, según carreras.uleam.edu.ec
-    // Deben coincidir con src/constants/facultades.ts (móvil) y el Select
-    // de UsuarioResource.php (admin). Actualiza los tres si cambia la lista.
-    private const FACULTADES = [
+    // Esta es la fuente de verdad: se expone en GET /api/facultades y el cliente
+    // Android llena su selector desde ahí (solo cae a una copia local si la
+    // llamada falla). Queda por alinear el Select de UsuarioResource.php (admin)
+    // y, mientras siga vivo, src/constants/facultades.ts del Expo.
+    public const FACULTADES = [
         'Facultad Ciencias de la Salud',
         'Facultad Ciencias Administrativas, Contables y Comercio',
         'Facultad de Educación, Turismo, Artes y Humanidades',

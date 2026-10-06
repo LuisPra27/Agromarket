@@ -48,8 +48,9 @@ switch ($Command) {
             --add-host=host.docker.internal:host-gateway `
             --env-file $EnvFile `
             -e DB_HOST=host.docker.internal `
+            -e PHP_CLI_SERVER_WORKERS=4 `
             --entrypoint php `
-            $ImageName artisan serve --host=0.0.0.0 --port=8000 | Out-Null
+            $ImageName artisan serve --host=0.0.0.0 --port=8000 --no-reload | Out-Null
         Write-Host "Backend iniciado. Usa './scripts/backend.ps1 logs' para ver salida."
     }
     "rebuild" {
