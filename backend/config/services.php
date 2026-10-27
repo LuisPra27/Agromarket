@@ -40,4 +40,13 @@ return [
         'store_id' => env('PAYPHONE_STORE_ID'),
     ],
 
+    'fcm' => [
+        // JSON de la cuenta de servicio de Firebase, en base64. Ver .env.
+        // Va en base64 y no como archivo porque .env esta en .dockerignore
+        // (asi la clave privada no entra en la imagen) y porque el --env-file
+        // de Docker no interpreta comillas ni escapes: un PEM multilinea o un
+        // valor entrecomillado se leerian mal.
+        'credentials' => env('FIREBASE_CREDENTIALS_BASE64'),
+    ],
+
 ];

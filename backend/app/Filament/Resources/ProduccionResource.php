@@ -5,7 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProduccionResource\Pages;
 use App\Models\Pedido;
 use App\Models\Usuario;
-use App\Services\ExpoPushService;
+use App\Services\FcmPushService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -161,7 +161,7 @@ class ProduccionResource extends Resource
                                 ->pluck('expo_push_token')
                                 ->toArray();
 
-                            ExpoPushService::enviar(
+                            FcmPushService::enviar(
                                 $tokens,
                                 'Nuevo pedido disponible 🛵',
                                 'Nuevo pedido listo para entregar',

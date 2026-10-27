@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\ProductoController;
 use App\Http\Controllers\Api\PedidoController;
 use App\Http\Controllers\Api\PayphoneController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 // Rutas públicas
@@ -43,6 +45,12 @@ Route::middleware('auth:usuario')->group(function () {
         Route::post('postular-repartidor', [AuthController::class, 'postularRepartidor']);
         Route::post('completar-perfil', [AuthController::class, 'completarPerfil']);
     });
+
+    // Autorización de canales privados para el móvil. El /broadcasting/auth
+    // que registra withRouting(channels:) va con middleware 'web' (sesión de
+    // navegador), así que un cliente con token Bearer recibe 403. Este queda
+    // bajo auth:usuario y responde en POST /api/broadcasting/auth.
+    Route::post('broadcasting/auth', fn (Request $request) => Broadcast::auth($request));
 
     // Catálogo
     Route::get('productos', [ProductoController::class, 'index']);

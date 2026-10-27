@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use App\Services\ExpoPushService;
+use App\Services\FcmPushService;
 use App\Events\PedidoCreado;
 use App\Events\PedidoAceptadoRepartidor;
 use App\Events\PedidoEntregado;
@@ -145,14 +145,14 @@ class PedidoController extends Controller
 
         $pedido->load(['cliente', 'repartidor']);
 
-        ExpoPushService::enviar(
+        FcmPushService::enviar(
             [$pedido->cliente->expo_push_token],
             'Tu pedido fue entregado ✅',
             "Pedido entregado con éxito. ¡Gracias por tu compra!",
             ['tipo' => 'pedido_entregado', 'pedido_id' => $pedido->id]
         );
 
-        ExpoPushService::enviar(
+        FcmPushService::enviar(
             [$request->user()->expo_push_token],
             'Entrega confirmada 💰',
             "Ganaste \${$incentivo} por la entrega.",
@@ -260,7 +260,7 @@ class PedidoController extends Controller
     // Disparar evento para badges admin en tiempo real
     event(new PedidoAceptadoRepartidor($actualizado->fresh()));
 
-    ExpoPushService::enviar(
+    FcmPushService::enviar(
     [$actualizado->cliente->expo_push_token],
     'Tu pedido va en camino 🛵',
     "{$request->user()->nombre_completo} está llevando tu pedido.",

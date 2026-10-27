@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UsuarioResource\Pages;
 use App\Models\Usuario;
-use App\Services\ExpoPushService;
+use App\Services\FcmPushService;
 use App\Events\RepartidorAprobado;
 use App\Events\RepartidorRechazado;
 use Filament\Forms;
@@ -138,7 +138,7 @@ class UsuarioResource extends Resource
 
                         // Push notification: avisar aunque la app esté cerrada
                         if ($record->expo_push_token) {
-                            ExpoPushService::enviar(
+                            FcmPushService::enviar(
                                 [$record->expo_push_token],
                                 '¡Tu solicitud fue aprobada! 🎉',
                                 'Ya puedes entrar al modo repartidor y recibir pedidos.',
@@ -165,7 +165,7 @@ class UsuarioResource extends Resource
 
                         // Push notification: avisar aunque la app esté cerrada
                         if ($record->expo_push_token) {
-                            ExpoPushService::enviar(
+                            FcmPushService::enviar(
                                 [$record->expo_push_token],
                                 'Tu solicitud fue rechazada',
                                 'Puedes volver a postular desde tu perfil cuando quieras.',

@@ -34,7 +34,7 @@ class PedidoAprobacionService
 
         event(new PedidoAprobado($pedido));
 
-        ExpoPushService::enviar(
+        FcmPushService::enviar(
             [$pedido->cliente->expo_push_token],
             'Tu pedido está listo 🎉',
             'Pedido aprobado. Ya puedes ver tu código QR en la app.',

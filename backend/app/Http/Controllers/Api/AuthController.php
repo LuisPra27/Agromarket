@@ -172,8 +172,13 @@ class AuthController extends Controller
 
     public function updatePushToken(Request $request): JsonResponse
     {
+        // nullable, no required: el cliente manda null al cerrar sesion para
+        // soltar el dispositivo. Con 'required' eso devolvia 422 SIEMPRE, y el
+        // Expo se lo tragaba con un console.warn. El nombre del campo sigue
+        // siendo expo_push_token porque es el de la columna; lo que viaja
+        // dentro ya es un token de FCM.
         $request->validate([
-            'expo_push_token' => 'required|string',
+            'expo_push_token' => 'nullable|string',
         ]);
 
         $request->user()->update([
