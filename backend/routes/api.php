@@ -16,6 +16,7 @@ Route::get('configuraciones/publicas', function () {
         'cuenta_titular',
         'cuenta_cedula',
         'costo_delivery',
+        'incentivo_repartidor',
     ];
     $configs = \App\Models\Configuracion::whereIn('clave', $claves)->get()
         ->pluck('valor', 'clave');
